@@ -334,7 +334,12 @@
     @media (max-width: 700px) {
       .admin-body { flex-direction: column; overflow-y: auto; }
       .panel-left { width: 100%; border-right: none; overflow-y: visible; flex-shrink: 0; }
-      .panel-right { display: none; }
+      .panel-right {
+        flex-shrink: 0; flex-direction: column;
+        border-top: 4px solid var(--border);
+        height: 75vw; min-height: 280px; max-height: 520px;
+      }
+      #previewFrame { height: 100%; }
       .header-sub { display: none; }
       .header-title { font-size: 0.88rem; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       #statusMsg { display: none; }
