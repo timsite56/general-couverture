@@ -1,0 +1,88 @@
+{
+  "nom_entreprise": "Général Couverture",
+  "type_artisan": "Couvreur",
+  "ville": "Angers",
+  "telephone_affiche": "06 21 32 37 89",
+  "telephone_tel": "+33621323789",
+  "annee": "2026",
+  "hero": {
+    "image": "images/hero-bg.jpg",
+    "titre": "Votre toiture entre de bonnes mains à Angers",
+    "description": "Couvreur expert intervenant à Angers et dans le Maine-et-Loire pour tous vos travaux de toiture, rénovation et zinguerie."
+  },
+  "apropos": {
+    "image": "images/apropos.webp",
+    "texte": "Général Couverture est une entreprise angevine fondée par un couvreur passionné, fort de plus de 15 ans d'expérience dans la pose et la rénovation de toitures. Basés à Angers, nous intervenons sur l'ensemble du Maine-et-Loire pour accompagner particuliers et professionnels dans tous leurs projets de couverture.\n\nCertifiés RGE (Reconnu Garant de l'Environnement), nous mettons un point d'honneur à vous proposer des matériaux de qualité et des prestations soignées, dans le respect des délais convenus. De la tuile à l'ardoise en passant par le zinc, chaque chantier est traité avec le même niveau d'exigence. La garantie décennale vous assure une protection durable sur l'ensemble de nos réalisations.",
+    "badges": ["Certifié RGE", "Devis gratuit", "Garantie décennale"]
+  },
+  "stats": [
+    { "valeur": "15", "label": "Ans d'expérience" },
+    { "valeur": "320", "label": "Chantiers réalisés" }
+  ],
+  "services": [
+    {
+      "titre": "Rénovation de toiture",
+      "description": "Nous intervenons sur toutes les toitures en remplaçant les éléments endommagés et en améliorant l'isolation de votre toiture pour une meilleure performance énergétique.",
+      "image": "images/service1.jpg"
+    },
+    {
+      "titre": "Réparation et entretien",
+      "description": "Fuites, cassures ou problèmes d'étanchéité, nous vous assurons une intervention rapide pour diagnostiquer et protéger la durée de vie de votre couverture.",
+      "image": "images/service2.jpg"
+    },
+    {
+      "titre": "Travaux de zinguerie",
+      "description": "Nous assurons la réparation et le remplacement des gouttières, chenaux et éléments de zinguerie afin d'assurer une protection optimale de votre façade.",
+      "image": "images/service3.jpg"
+    }
+  ],
+  "avis": {
+    "google_score": "5.0",
+    "nb_avis": "3 avis",
+    "temoignages": [
+      {
+        "initiale": "M",
+        "nom": "Marc Lefebvre",
+        "texte": "Très bon travail, rapide et propre. La toiture est impeccable, je recommande sans hésiter."
+      },
+      {
+        "initiale": "S",
+        "nom": "Samir Bouzidi",
+        "texte": "Intervention suite à une fuite importante sur ma maison à Angers. Diagnostic rapide, devis clair et travaux réalisés dans les délais. Artisan sérieux et à l'écoute, le résultat est vraiment top !"
+      },
+      {
+        "initiale": "E",
+        "nom": "Élise Renard",
+        "texte": "Remplacement des gouttières bien géré, ponctuel et propre. Prix honnête et travail soigné. Je ferai de nouveau appel à eux."
+      }
+    ]
+  },
+  "galerie": [
+    { "image": "images/gallery1.png", "legende": "Réalisation 1" },
+    { "image": "images/gallery2.png", "legende": "Réalisation 2" },
+    { "image": "images/gallery3.png", "legende": "Réalisation 3" },
+    { "image": "images/gallery4.png", "legende": "Réalisation 4" },
+    { "image": "images/gallery5.png", "legende": "Réalisation 5" },
+    { "image": "images/gallery6.png", "legende": "Réalisation 6" }
+  ],
+  "faq": [
+    {
+      "question": "Intervenez-vous en urgence pour une fuite de toiture ?",
+      "reponse": "Oui, nous proposons des interventions d'urgence à Angers et dans le Maine-et-Loire. Contactez-nous au 06 21 32 37 89 et nous nous déplaçons dans les meilleurs délais pour sécuriser votre toiture."
+    },
+    {
+      "question": "Proposez-vous des devis gratuits ?",
+      "reponse": "Absolument. Nous vous proposons un devis détaillé et gratuit après une visite sur site. Aucune mauvaise surprise : le prix indiqué est celui que vous payez."
+    },
+    {
+      "question": "Quels types de toitures prenez-vous en charge ?",
+      "reponse": "Nous intervenons sur tous les types de toitures : tuiles, ardoises, zinc, bac acier et toitures-terrasses. Que ce soit pour une rénovation complète ou une simple réparation, nous avons les compétences nécessaires."
+    },
+    {
+      "question": "Êtes-vous assurés et certifiés ?",
+      "reponse": "Oui, Général Couverture est titulaire de la garantie décennale et certifié RGE (Reconnu Garant de l'Environnement), ce qui vous permet d'accéder aux aides de l'État pour vos travaux de rénovation énergétique."
+    }
+  ],
+  "contact_description": "Besoin d'un devis ou d'une intervention rapide ? Appelez-nous directement, nous répondons à toutes vos demandes à Angers et dans le Maine-et-Loire.",
+  "footer_description": "Couvreur expert à Angers, intervenant dans tout le Maine-et-Loire pour vos toitures, réparations et travaux de zinguerie."
+}
