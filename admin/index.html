@@ -332,14 +332,15 @@
 
     /* ─── RESPONSIVE MOBILE ──────────────────────────── */
     @media (max-width: 700px) {
-      .admin-body { flex-direction: column; overflow-y: auto; }
+      html, body { overflow: auto; height: auto; }
+      #adminApp { height: auto; min-height: 100dvh; }
+      .admin-body { flex-direction: column; overflow: visible; height: auto; }
       .panel-left { width: 100%; border-right: none; overflow-y: visible; flex-shrink: 0; }
       .panel-right {
-        flex-shrink: 0; flex-direction: column;
-        border-top: 4px solid var(--border);
-        height: 75vw; min-height: 280px; max-height: 520px;
+        flex-shrink: 0; height: 100dvh;
+        border-top: 10px solid #d4d4d8;
       }
-      #previewFrame { height: 100%; }
+      #previewFrame { flex: 1; }
       .header-sub { display: none; }
       .header-title { font-size: 0.88rem; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       #statusMsg { display: none; }
