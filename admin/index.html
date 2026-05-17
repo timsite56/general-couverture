@@ -331,9 +331,14 @@
     #toast.toast-error { background: var(--danger); }
 
     /* ─── RESPONSIVE MOBILE ──────────────────────────── */
-    #mobilePreviewBtn { display: none; }
     @media (max-width: 700px) {
-      .panel-right { display: none; }
+      html, body { overflow: auto; height: auto; }
+      #adminApp { height: auto; }
+      .admin-body { flex-direction: column; overflow: visible; height: auto; }
+      .panel-left { width: 100%; border-right: none; overflow-y: visible; flex-shrink: 0; }
+      .panel-right { border-top: 10px solid #d4d4d8; height: auto; flex: none; overflow: visible; }
+      #previewFrame { height: 200px; }
+      .preview-bar { display: none; }
       .header-sub { display: none; }
       .header-title { font-size: 0.88rem; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       #statusMsg { display: none; }
@@ -343,15 +348,6 @@
       .stats-row { grid-template-columns: 1fr; }
       .gallery-thumb-remove { width: 26px; height: 26px; font-size: 0.9rem; top: 6px; right: 6px; }
       .section-inner { padding: 0.5rem 0.9rem 1.1rem; }
-      #mobilePreviewBtn {
-        display: block; position: fixed; bottom: 1.2rem; right: 1.2rem;
-        background: var(--accent); color: #fff;
-        border: none; border-radius: 9999px;
-        padding: 0.7rem 1.2rem; font-size: 0.88rem; font-weight: 700;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.25);
-        cursor: pointer; z-index: 500;
-        text-decoration: none;
-      }
     }
   </style>
 </head>
@@ -388,8 +384,6 @@
       </button>
     </div>
   </header>
-
-  <a id="mobilePreviewBtn" href="../index.html" target="_blank">👁 Voir le site</a>
 
   <div class="admin-body">
     <div class="panel-left" id="panelLeft"></div>
@@ -538,12 +532,21 @@ async function uploadImage(path, base64) {
 ══════════════════════════════════════════════════ */
 const previewFrame = document.getElementById('previewFrame');
 
+function resizeMobileFrame() {
+  if (window.innerWidth > 700) return;
+  try {
+    const h = previewFrame.contentDocument.documentElement.scrollHeight;
+    if (h > 100) previewFrame.style.height = h + 'px';
+  } catch(e) {}
+}
+
 window.addEventListener('message', e => {
   if (e.data && e.data.type === 'PREVIEW_READY') {
     previewReady = true;
     document.getElementById('previewDot').classList.add('ready');
     document.getElementById('previewLabel').textContent = 'Aperçu synchronisé';
     sendPreview();
+    setTimeout(resizeMobileFrame, 400);
   }
 });
 
