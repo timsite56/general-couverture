@@ -1,0 +1,149 @@
+backend:
+  name: git-gateway
+  branch: main
+
+locale: fr
+
+media_folder: images
+public_folder: /images
+
+collections:
+  - name: site
+    label: "Site web"
+    files:
+      - name: content
+        label: "Contenu du site"
+        file: data/content.json
+        format: json
+        fields:
+          - label: "Nom de l'entreprise"
+            name: nom_entreprise
+            widget: string
+          - label: "Type d'artisan (ex: Couvreur, Plombier)"
+            name: type_artisan
+            widget: string
+          - label: "Ville"
+            name: ville
+            widget: string
+          - label: "Téléphone affiché (ex: 06 87 29 39 90)"
+            name: telephone_affiche
+            widget: string
+          - label: "Téléphone lien (ex: +33687293990)"
+            name: telephone_tel
+            widget: string
+          - label: "Année (copyright footer)"
+            name: annee
+            widget: string
+
+          - label: "Section Hero"
+            name: hero
+            widget: object
+            fields:
+              - label: "Image de fond"
+                name: image
+                widget: image
+              - label: "Titre principal"
+                name: titre
+                widget: string
+              - label: "Description"
+                name: description
+                widget: text
+
+          - label: "À propos"
+            name: apropos
+            widget: object
+            fields:
+              - label: "Photo de présentation"
+                name: image
+                widget: image
+              - label: "Texte de présentation"
+                name: texte
+                widget: text
+              - label: "Badges de confiance"
+                name: badges
+                widget: list
+                field:
+                  label: "Badge"
+                  name: texte
+                  widget: string
+
+          - label: "Chiffres clés"
+            name: stats
+            widget: list
+            max: 2
+            fields:
+              - label: "Valeur (ex: 150)"
+                name: valeur
+                widget: string
+              - label: "Description (ex: Clients satisfaits)"
+                name: label
+                widget: string
+
+          - label: "Services"
+            name: services
+            widget: list
+            fields:
+              - label: "Titre du service"
+                name: titre
+                widget: string
+              - label: "Description"
+                name: description
+                widget: text
+              - label: "Photo"
+                name: image
+                widget: image
+
+          - label: "Avis clients"
+            name: avis
+            widget: object
+            fields:
+              - label: "Note Google (ex: 4.9/5)"
+                name: google_score
+                widget: string
+              - label: "Nombre d'avis (ex: 87 avis)"
+                name: nb_avis
+                widget: string
+              - label: "Témoignages"
+                name: temoignages
+                widget: list
+                fields:
+                  - label: "Nom du client"
+                    name: nom
+                    widget: string
+                  - label: "Initiale (1 lettre)"
+                    name: initiale
+                    widget: string
+                  - label: "Témoignage"
+                    name: texte
+                    widget: text
+
+          - label: "Galerie photos"
+            name: galerie
+            widget: list
+            fields:
+              - label: "Photo"
+                name: image
+                widget: image
+              - label: "Légende (optionnel)"
+                name: legende
+                widget: string
+                required: false
+
+          - label: "FAQ"
+            name: faq
+            widget: list
+            fields:
+              - label: "Question"
+                name: question
+                widget: string
+              - label: "Réponse"
+                name: reponse
+                widget: text
+
+          - label: "Texte section Contact"
+            name: contact_description
+            widget: text
+
+          - label: "Texte footer"
+            name: footer_description
+            widget: text
