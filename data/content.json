@@ -112,5 +112,10 @@
     }
   ],
   "contact_description": "Besoin d'un devis ou d'une intervention rapide ? Appelez-nous directement, nous répondons à toutes vos demandes à Angers et dans le Maine-et-Loire.",
-  "footer_description": "Couvreur expert à Angers, intervenant dans tout le Maine-et-Loire pour vos toitures, réparations et travaux de zinguerie."
+  "footer_description": "Couvreur expert à Angers, intervenant dans tout le Maine-et-Loire pour vos toitures, réparations et travaux de zinguerie.",
+  "design": {
+    "nav_style": "classique",
+    "stats_style": "bandeau",
+    "palette": "noir"
+  }
 }

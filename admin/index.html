@@ -304,6 +304,30 @@
     }
     .stat-box-lbl { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 
+    /* ─── SEGMENT BUTTONS ───────────────────────────── */
+    .seg-group { display: flex; border: 1.5px solid var(--border); border-radius: 9px; overflow: hidden; }
+    .seg-btn {
+      flex: 1; padding: 0.4rem 0.5rem;
+      background: #fff; border: none; cursor: pointer;
+      font-size: 0.79rem; font-weight: 600; color: var(--muted);
+      transition: background 0.13s, color 0.13s; text-align: center; line-height: 1.3;
+    }
+    .seg-btn:not(:last-child) { border-right: 1px solid var(--border); }
+    .seg-btn.active { background: #111; color: #fff; }
+    .seg-btn:hover:not(.active) { background: #f4f4f5; color: #333; }
+
+    /* ─── PALETTE ────────────────────────────────────── */
+    .palette-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+    .palette-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+    .palette-swatch {
+      width: 34px; height: 34px; border-radius: 9px;
+      border: 2.5px solid transparent;
+      transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+    }
+    .palette-item:hover .palette-swatch { transform: scale(1.1); }
+    .palette-swatch.active { border-color: #fff; box-shadow: 0 0 0 2.5px #111; }
+    .palette-label { font-size: 0.62rem; color: var(--muted); text-align: center; max-width: 42px; line-height: 1.2; }
+
     /* ─── RIGHT PANEL ────────────────────────────────── */
     .panel-right { flex: 1; display: flex; flex-direction: column; background: #e8e8ec; overflow: hidden; }
     .preview-bar {
@@ -862,6 +886,8 @@ function makeSection(icon, label, id, buildFn) {
 function renderPanel() {
   const panel = document.getElementById('panelLeft');
   panel.innerHTML = '';
+  if (!state.design) state.design = { nav_style:'classique', stats_style:'bandeau', palette:'noir' };
+  panel.appendChild(buildMenu());
   panel.appendChild(buildInfos());
   panel.appendChild(buildHero());
   panel.appendChild(buildApropos());
@@ -871,7 +897,44 @@ function renderPanel() {
   panel.appendChild(buildGalerie());
   panel.appendChild(buildFaq());
   panel.appendChild(buildContactFooter());
+  panel.appendChild(buildParametres());
   // Toutes les sections fermées par défaut
+}
+
+/* Helper : segment buttons liés à un champ de state.design */
+function mkSegGroup(options, getValue, setValue) {
+  if (!state.design) state.design = {};
+  const seg = document.createElement('div'); seg.className = 'seg-group';
+  options.forEach(([val, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'seg-btn' + (getValue() === val ? ' active' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      setValue(val);
+      seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+      schedulePreview();
+    });
+    seg.appendChild(btn);
+  });
+  return seg;
+}
+
+function buildMenu() {
+  return makeSection('☰', 'Menu', 's_menu', inner => {
+    if (!state.design) state.design = {};
+    const navField = document.createElement('div'); navField.className = 'field';
+    const navLbl = document.createElement('label'); navLbl.textContent = 'Style de navigation';
+    navField.appendChild(navLbl);
+    navField.appendChild(mkSegGroup(
+      [['classique','Classique'],['transparent','Transparent'],['flottant','Flottant']],
+      () => state.design.nav_style || 'classique',
+      v => { state.design.nav_style = v; }
+    ));
+    const hint = document.createElement('span'); hint.className = 'field-hint';
+    hint.textContent = 'Transparent : nav invisible sur le hero, visible au scroll · Flottant : carte arrondie';
+    navField.appendChild(hint);
+    inner.appendChild(navField);
+  });
 }
 
 function buildInfos() {
@@ -930,6 +993,18 @@ function buildApropos() {
 
 function buildStats() {
   return makeSection('📊', 'Chiffres clés', 's_stats', inner => {
+    if (!state.design) state.design = {};
+    /* Sélecteur de variante */
+    const styleField = document.createElement('div'); styleField.className = 'field';
+    const styleLbl = document.createElement('label'); styleLbl.textContent = 'Style d'affichage';
+    styleField.appendChild(styleLbl);
+    styleField.appendChild(mkSegGroup(
+      [['bandeau','Bandeau'],['classique','Classique'],['minimal','Minimal']],
+      () => state.design.stats_style || 'bandeau',
+      v => { state.design.stats_style = v; }
+    ));
+    inner.appendChild(styleField);
+    /* Valeurs */
     const row = document.createElement('div'); row.className = 'stats-row';
     state.stats.forEach((s, i) => {
       const box = document.createElement('div'); box.className = 'stat-box';
@@ -1138,6 +1213,47 @@ function buildContactFooter() {
   return makeSection('📞', 'Contact & Footer', 's_contact', inner => {
     inner.appendChild(mkField('Texte section Contact', state.contact_description, v => { state.contact_description = v; schedulePreview(); }, true));
     inner.appendChild(mkField('Texte Footer',          state.footer_description,  v => { state.footer_description  = v; schedulePreview(); }, true));
+  });
+}
+
+function buildParametres() {
+  const PALETTE_LIST = [
+    { id:'noir',      label:'Noir',       color:'#0a0a0a' },
+    { id:'bleu',      label:'Bleu Océan', color:'#1d4ed8' },
+    { id:'vert',      label:'Émeraude',   color:'#065f46' },
+    { id:'orange',    label:'Terracotta', color:'#9a3412' },
+    { id:'bordeaux',  label:'Bordeaux',   color:'#881337' },
+    { id:'ardoise',   label:'Ardoise',    color:'#334155' },
+    { id:'violet',    label:'Violet',     color:'#5b21b6' },
+    { id:'brun',      label:'Terre Bois', color:'#78350f' },
+  ];
+  return makeSection('🎨', 'Paramètres', 's_params', inner => {
+    if (!state.design) state.design = {};
+
+    const palField = document.createElement('div'); palField.className = 'field';
+    const palLbl = document.createElement('label'); palLbl.textContent = 'Palette de couleurs';
+    palField.appendChild(palLbl);
+
+    const grid = document.createElement('div'); grid.className = 'palette-grid';
+    const currentPal = state.design.palette || 'noir';
+
+    PALETTE_LIST.forEach(p => {
+      const item = document.createElement('div'); item.className = 'palette-item';
+      const swatch = document.createElement('div');
+      swatch.className = 'palette-swatch' + (currentPal === p.id ? ' active' : '');
+      swatch.style.background = p.color;
+      const lbl = document.createElement('span'); lbl.className = 'palette-label'; lbl.textContent = p.label;
+      item.appendChild(swatch); item.appendChild(lbl);
+      item.addEventListener('click', () => {
+        state.design.palette = p.id;
+        grid.querySelectorAll('.palette-swatch').forEach(s => s.classList.toggle('active', s === swatch));
+        schedulePreview();
+      });
+      grid.appendChild(item);
+    });
+
+    palField.appendChild(grid);
+    inner.appendChild(palField);
   });
 }
 
