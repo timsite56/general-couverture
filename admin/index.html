@@ -58,7 +58,7 @@
     #passwordInput {
       width: 100%; padding: 0.72rem 1rem; margin-bottom: 0.75rem;
       border: 1.5px solid var(--border); border-radius: 10px;
-      font-size: 0.95rem; font-family: inherit; text-align: center;
+      font-size: 16px; font-family: inherit; text-align: center;
       letter-spacing: 0.05em; transition: border-color 0.15s;
     }
     #passwordInput:focus { outline: none; border-color: #888; }
@@ -809,7 +809,7 @@ function renderPanel() {
   panel.appendChild(buildGalerie());
   panel.appendChild(buildFaq());
   panel.appendChild(buildContactFooter());
-  panel.querySelector('.section-item').classList.add('open');
+  // Toutes les sections fermées par défaut
 }
 
 function buildInfos() {
