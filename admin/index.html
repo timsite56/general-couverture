@@ -331,13 +331,12 @@
     #toast.toast-error { background: var(--danger); }
 
     /* ─── RESPONSIVE MOBILE ──────────────────────────── */
+    #mobilePreviewBar { display: none; }
     @media (max-width: 700px) {
       #adminApp { height: auto; overflow: visible; }
       .admin-body { flex-direction: column; overflow: visible; height: auto; }
       .panel-left { width: 100%; border-right: none; overflow-y: visible; flex-shrink: 0; }
-      .panel-right { height: auto; flex: none; overflow: visible; border-top: 4px solid #111; margin-top: 1.5rem; }
-      .preview-bar { height: auto; padding: 0.5rem 1rem; }
-      #previewFrame { width: 100%; height: 300px; display: block; }
+      .panel-right { display: none; }
       .header-sub { display: none; }
       .header-title { font-size: 0.88rem; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       #statusMsg { display: none; }
@@ -347,6 +346,21 @@
       .stats-row { grid-template-columns: 1fr; }
       .gallery-thumb-remove { width: 26px; height: 26px; font-size: 0.9rem; top: 6px; right: 6px; }
       .section-inner { padding: 0.5rem 0.9rem 1.1rem; }
+      #mobilePreviewBar {
+        display: block;
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+        background: #fff; border-top: 1px solid var(--border);
+        padding: 0.75rem 1rem;
+        box-shadow: 0 -3px 12px rgba(0,0,0,0.08);
+      }
+      #mobilePreviewBar a {
+        display: block; width: 100%; padding: 0.85rem;
+        background: var(--accent); color: #fff;
+        border-radius: 12px; text-align: center;
+        font-size: 0.95rem; font-weight: 700;
+        text-decoration: none; letter-spacing: -0.01em;
+      }
+      .panel-left { padding-bottom: 80px; }
     }
   </style>
 </head>
@@ -383,6 +397,11 @@
       </button>
     </div>
   </header>
+
+  <!-- Barre fixe en bas sur mobile -->
+  <div id="mobilePreviewBar">
+    <a href="../index.html" target="_blank">👁 Voir le site en direct →</a>
+  </div>
 
   <div class="admin-body">
     <div class="panel-left" id="panelLeft"></div>
