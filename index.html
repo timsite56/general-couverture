@@ -333,7 +333,7 @@
     .btn-dark  { background: var(--primary); color: #fff; }
     .btn-white { background: #fff; color: var(--primary); }
     .btn-link  {
-      background: none; color: var(--text); padding: 0.7rem 0;
+      background: none; color: var(--primary); padding: 0.7rem 0;
       font-size: 0.9rem; font-weight: 600; border: none;
       display: inline-flex; align-items: center; gap: 0.35rem;
       text-decoration: none; cursor: pointer;
@@ -386,7 +386,7 @@
       display: block;
       font-size: 0.72rem; font-weight: 700;
       letter-spacing: 0.12em; text-transform: uppercase;
-      color: rgba(10,10,10,0.55);
+      color: var(--primary);
       margin-bottom: 0.9rem;
     }
     .title-underline {
@@ -423,7 +423,7 @@
       position: absolute; bottom: 0; right: 0;
       z-index: 2;
       background: #fff; padding-left: 0.4rem;
-      color: var(--text); font-weight: 700;
+      color: var(--primary); font-weight: 700;
       text-decoration: none; white-space: nowrap;
       font-size: 0.95rem; line-height: 1.75;
     }
@@ -500,7 +500,7 @@
     .service-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(10,10,10,0.10); }
     .service-card img { width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block; }
     .service-body { padding: 1.3rem 1.4rem 1.5rem; }
-    .service-body h3 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 0.5rem; }
+    .service-body h3 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 0.5rem; color: var(--primary); }
     .service-body p { color: var(--muted); font-size: 0.875rem; line-height: 1.65; }
 
     /* ─── TESTIMONIALS ─────────────────────────────── */
@@ -606,6 +606,25 @@
     .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
     .faq-item.open .faq-answer { max-height: 300px; }
     .faq-answer p { color: var(--muted); font-size: 0.88rem; line-height: 1.75; padding-bottom: 1.2rem; }
+
+    /* ─── HORAIRES ─────────────────────────────────── */
+    #horaires { background: var(--bg); }
+    .horaires-header { text-align: center; margin-bottom: 3rem; }
+    .horaires-table { max-width: 640px; margin: 0 auto; }
+    .horaire-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.85rem 1.2rem; border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .horaire-row:nth-child(even) { background: var(--surface); }
+    .horaire-jour {
+      display: flex; align-items: center; gap: 0.65rem;
+      font-weight: 600; color: var(--text); min-width: 110px;
+    }
+    .horaire-jour svg { color: var(--primary); flex-shrink: 0; }
+    .horaire-row.ferme .horaire-jour { color: var(--muted); }
+    .horaire-heures { color: var(--muted); font-size: 0.875rem; }
+    .horaire-row.ferme .horaire-heures { font-style: italic; }
 
     /* ─── CONTACT ───────────────────────────────────── */
     #contact { background: var(--bg); text-align: center; padding: 96px 11%; }
@@ -756,6 +775,7 @@
     <li><a href="#avis">Avis</a></li>
     <li><a href="#galerie">Galerie</a></li>
     <li><a href="#faq">FAQ</a></li>
+    <li id="horairesNavLi" style="display:none"><a href="#horaires">Horaires</a></li>
     <li><a href="#contact">Contact</a></li>
     <li>
       <a href="#" class="nav-cta phone-link">
@@ -773,13 +793,13 @@
 <section id="hero">
   <div class="hero-inner">
     <span class="hero-eyebrow fade-up" style="--delay:.1s">
-      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0"></span>
+      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--primary);flex-shrink:0"></span>
       <span id="heroEyebrow"> </span>
     </span>
     <h1 class="fade-up" style="--delay:.25s" id="heroTitle"> </h1>
     <p class="fade-up" style="--delay:.4s" id="heroDesc"> </p>
     <div class="hero-btns fade-up" style="--delay:.55s">
-      <a href="#" class="btn btn-white phone-link">
+      <a href="#" class="btn btn-dark phone-link">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 010 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
         Nous appeler
       </a>
@@ -889,6 +909,16 @@
   <ul class="faq-list" id="faqList"></ul>
 </section>
 
+<!-- HORAIRES -->
+<section id="horaires" style="display:none">
+  <div class="horaires-header">
+    <span class="label">Horaires</span>
+    <h2 class="section-title">Nos horaires d'ouverture</h2>
+    <span class="title-underline" style="margin:0.6rem auto 0"></span>
+  </div>
+  <div class="horaires-table" id="horairesTable"></div>
+</section>
+
 <!-- CONTACT -->
 <section id="contact">
   <span class="contact-label">Prenez contact</span>
@@ -916,6 +946,7 @@
         <li><a href="#avis">Avis</a></li>
         <li><a href="#galerie">Galerie</a></li>
         <li><a href="#faq">FAQ</a></li>
+        <li id="horairesFooterLi" style="display:none"><a href="#horaires">Horaires</a></li>
       </ul>
     </div>
     <div>
@@ -1171,7 +1202,7 @@
 
     /* ── Design : palette + nav + stats ── */
     const PALETTES = {
-      noir:'#0a0a0a', bleu:'#1d4ed8', vert:'#065f46',
+      noir:'#0a0a0a', bleu:'#1e6ba3', vert:'#065f46',
       orange:'#9a3412', bordeaux:'#881337', ardoise:'#334155',
       violet:'#5b21b6', brun:'#78350f'
     };
@@ -1190,6 +1221,26 @@
     statsSec.classList.remove('stats-classique', 'stats-minimal');
     if (design.stats_style === 'classique') statsSec.classList.add('stats-classique');
     else if (design.stats_style === 'minimal') statsSec.classList.add('stats-minimal');
+
+    /* ── Horaires ── */
+    const horSec = document.getElementById('horaires');
+    const horNavLi = document.getElementById('horairesNavLi');
+    const horFooterLi = document.getElementById('horairesFooterLi');
+    const horaires = data.horaires;
+    const horVisible = horaires && horaires.visible === true;
+    if (horNavLi) horNavLi.style.display = horVisible ? '' : 'none';
+    if (horFooterLi) horFooterLi.style.display = horVisible ? '' : 'none';
+    if (horSec) {
+      horSec.style.display = horVisible ? '' : 'none';
+      if (horVisible && horaires.jours) {
+        var CLOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+        document.getElementById('horairesTable').innerHTML = horaires.jours.map(function(j) {
+          if (j.ferme) return '<div class="horaire-row ferme"><span class="horaire-jour">' + CLOCK + ' ' + j.nom + '</span><span class="horaire-heures">Fermé</span></div>';
+          var h = j.matin_debut.replace(':','h') + ' - ' + j.matin_fin.replace(':','h') + ' / ' + j.am_debut.replace(':','h') + ' - ' + j.am_fin.replace(':','h');
+          return '<div class="horaire-row"><span class="horaire-jour">' + CLOCK + ' ' + j.nom + '</span><span class="horaire-heures">' + h + '</span></div>';
+        }).join('');
+      }
+    }
 
         initCarouselDots('servicesGrid', 'servicesDots');
     initCarouselDots('galleryGrid',  'galleryDots');

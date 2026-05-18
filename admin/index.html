@@ -354,6 +354,49 @@
     #toast.toast-ok    { background: var(--success); }
     #toast.toast-error { background: var(--danger); }
 
+    /* ─── EYE TOGGLE ───────────────────────────────── */
+    .eye-toggle {
+      background: none; border: none; cursor: pointer;
+      padding: 0.35rem; border-radius: 6px;
+      color: var(--muted); transition: color 0.15s, background 0.15s;
+      display: flex; align-items: center; flex-shrink: 0;
+    }
+    .eye-toggle:hover { background: var(--bg); color: var(--text); }
+    .eye-toggle.active { color: var(--accent); }
+    /* ─── HORAIRES ADMIN ────────────────────────────── */
+    .horaire-admin-row {
+      display: flex; flex-direction: column; gap: 0.4rem;
+      padding: 0.85rem 0.9rem; border: 1.5px solid var(--border);
+      border-radius: 8px; background: #fff;
+    }
+    .horaire-admin-row-top {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .horaire-admin-day { font-size: 0.88rem; font-weight: 700; }
+    .horaire-admin-ferme {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; color: var(--muted); cursor: pointer;
+    }
+    .horaire-admin-ferme input[type="checkbox"] { cursor: pointer; }
+    .horaire-admin-times {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.5rem; margin-top: 0.2rem;
+    }
+    .horaire-admin-times label {
+      font-size: 0.7rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      display: block; margin-bottom: 0.15rem;
+    }
+    .horaire-admin-slot {
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .horaire-admin-slot input[type="time"] {
+      flex: 1; padding: 0.35rem 0.5rem;
+      border: 1.5px solid var(--border); border-radius: 6px;
+      font-size: 0.82rem; font-family: inherit;
+    }
+    .horaire-admin-slot span { font-size: 0.75rem; color: var(--muted); }
+
     /* ─── RESPONSIVE MOBILE ──────────────────────────── */
     #mobilePreviewBar { display: none; }
     @media (max-width: 700px) {
@@ -896,6 +939,7 @@ function renderPanel() {
   panel.appendChild(buildAvis());
   panel.appendChild(buildGalerie());
   panel.appendChild(buildFaq());
+  panel.appendChild(buildHoraires());
   panel.appendChild(buildContactFooter());
   panel.appendChild(buildParametres());
   // Toutes les sections fermées par défaut
@@ -1209,6 +1253,112 @@ function buildFaq() {
   });
 }
 
+function buildHoraires() {
+  if (!state.horaires) {
+    state.horaires = {
+      visible: false,
+      jours: [
+        {nom:'Lundi',    ferme:false, matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'},
+        {nom:'Mardi',    ferme:false, matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'},
+        {nom:'Mercredi', ferme:false, matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'},
+        {nom:'Jeudi',    ferme:false, matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'},
+        {nom:'Vendredi', ferme:false, matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'},
+        {nom:'Samedi',   ferme:false, matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'},
+        {nom:'Dimanche', ferme:true,  matin_debut:'09:00', matin_fin:'12:00', am_debut:'14:00', am_fin:'18:00'}
+      ]
+    };
+  }
+
+  const section = makeSection('🕐', 'Horaires', 's_horaires', inner => {
+    const hint = document.createElement('p');
+    hint.style.cssText = 'font-size:0.75rem;color:var(--muted);margin-bottom:0.4rem;';
+    hint.textContent = 'Activez la section via l\'icône 👁 dans l\'en-tête. Cochez "Fermé" pour les jours non travaillés.';
+    inner.appendChild(hint);
+
+    const listEl = document.createElement('div');
+    listEl.style.cssText = 'display:flex;flex-direction:column;gap:0.55rem;';
+    inner.appendChild(listEl);
+
+    function renderJours() {
+      listEl.innerHTML = '';
+      state.horaires.jours.forEach((j, i) => {
+        const row = document.createElement('div');
+        row.className = 'horaire-admin-row';
+
+        const top = document.createElement('div');
+        top.className = 'horaire-admin-row-top';
+
+        const dayLbl = document.createElement('span');
+        dayLbl.className = 'horaire-admin-day';
+        dayLbl.textContent = j.nom;
+        top.appendChild(dayLbl);
+
+        const fermeLabel = document.createElement('label');
+        fermeLabel.className = 'horaire-admin-ferme';
+        const fermeChk = document.createElement('input');
+        fermeChk.type = 'checkbox';
+        fermeChk.checked = j.ferme;
+        fermeChk.addEventListener('change', () => {
+          state.horaires.jours[i].ferme = fermeChk.checked;
+          timesEl.style.display = fermeChk.checked ? 'none' : '';
+          schedulePreview();
+        });
+        fermeLabel.appendChild(fermeChk);
+        fermeLabel.appendChild(document.createTextNode('Fermé'));
+        top.appendChild(fermeLabel);
+        row.appendChild(top);
+
+        const timesEl = document.createElement('div');
+        timesEl.className = 'horaire-admin-times';
+        timesEl.style.display = j.ferme ? 'none' : '';
+
+        function mkTimeSlot(labelText, field) {
+          const wrap = document.createElement('div');
+          const lbl = document.createElement('label');
+          lbl.textContent = labelText;
+          const slot = document.createElement('div');
+          slot.className = 'horaire-admin-slot';
+          const [debutField, finField] = field === 'matin'
+            ? ['matin_debut', 'matin_fin']
+            : ['am_debut', 'am_fin'];
+          const t1 = document.createElement('input');
+          t1.type = 'time'; t1.value = j[debutField];
+          t1.addEventListener('input', () => { state.horaires.jours[i][debutField] = t1.value; schedulePreview(); });
+          const sep = document.createElement('span'); sep.textContent = '→';
+          const t2 = document.createElement('input');
+          t2.type = 'time'; t2.value = j[finField];
+          t2.addEventListener('input', () => { state.horaires.jours[i][finField] = t2.value; schedulePreview(); });
+          slot.appendChild(t1); slot.appendChild(sep); slot.appendChild(t2);
+          wrap.appendChild(lbl); wrap.appendChild(slot);
+          return wrap;
+        }
+
+        timesEl.appendChild(mkTimeSlot('Matin', 'matin'));
+        timesEl.appendChild(mkTimeSlot('Après-midi', 'am'));
+        row.appendChild(timesEl);
+        listEl.appendChild(row);
+      });
+    }
+    renderJours();
+  });
+
+  const header = section.querySelector('.section-header');
+  const eyeBtn = document.createElement('button');
+  eyeBtn.className = 'eye-toggle' + (state.horaires.visible ? ' active' : '');
+  eyeBtn.title = 'Afficher / masquer les horaires sur le site';
+  eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  eyeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    state.horaires.visible = !state.horaires.visible;
+    eyeBtn.classList.toggle('active', state.horaires.visible);
+    schedulePreview();
+  });
+  const chevron = header.querySelector('.section-chevron');
+  header.insertBefore(eyeBtn, chevron);
+
+  return section;
+}
+
 function buildContactFooter() {
   return makeSection('📞', 'Contact & Footer', 's_contact', inner => {
     inner.appendChild(mkField('Texte section Contact', state.contact_description, v => { state.contact_description = v; schedulePreview(); }, true));
@@ -1219,7 +1369,7 @@ function buildContactFooter() {
 function buildParametres() {
   const PALETTE_LIST = [
     { id:'noir',      label:'Noir',       color:'#0a0a0a' },
-    { id:'bleu',      label:'Bleu Océan', color:'#1d4ed8' },
+    { id:'bleu',      label:'Bleu Océan', color:'#1e6ba3' },
     { id:'vert',      label:'Émeraude',   color:'#065f46' },
     { id:'orange',    label:'Terracotta', color:'#9a3412' },
     { id:'bordeaux',  label:'Bordeaux',   color:'#881337' },
