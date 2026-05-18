@@ -400,7 +400,7 @@
 
   <!-- Barre fixe en bas sur mobile -->
   <div id="mobilePreviewBar">
-    <a href="../index.html" target="_blank">👁 Voir le site en direct →</a>
+    <a href="../index.html" target="_blank" id="mobilePreviewLink">👁 Voir le site en direct →</a>
   </div>
 
   <div class="admin-body">
@@ -531,6 +531,54 @@ async function loadContentFromGit() {
   return JSON.parse(json);
 }
 
+async function updateSeoInIndex() {
+  try {
+    const fileData = await gitGet('index.html');
+    let html = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
+    const sha = fileData.sha;
+
+    const nom   = (state.nom_entreprise || '').replace(/"/g, '&quot;');
+    const type  = (state.type_artisan  || '').replace(/"/g, '&quot;');
+    const ville = (state.ville         || '').replace(/"/g, '&quot;');
+    const tel   = state.telephone_tel  || state.telephone_affiche || '';
+    const rawDesc = (state.hero.description || state.hero.titre || '').replace(/<[^>]*>/g, '').replace(/"/g, '&quot;').slice(0, 155);
+
+    const title = [nom, type && ville ? `${type} à ${ville}` : (type || ville)].filter(Boolean).join(' — ');
+
+    const schema = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": state.nom_entreprise || '',
+      "description": (state.hero.description || state.hero.titre || '').replace(/<[^>]*>/g, '').slice(0, 155),
+      "telephone": tel,
+      "address": { "@type": "PostalAddress", "addressLocality": state.ville || '', "addressCountry": "FR" },
+      "areaServed": state.ville || '',
+      "priceRange": "€€"
+    }, null, 2);
+
+    const seoBlock = `<!-- SEO-BLOCK-START -->
+  <title>${title}</title>
+  <meta name="description" content="${rawDesc}"/>
+  <meta name="robots" content="index, follow"/>
+  <meta property="og:title" content="${title}"/>
+  <meta property="og:description" content="${rawDesc}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:locale" content="fr_FR"/>
+  <script type="application/ld+json">
+${schema}
+  <\/script>
+  <!-- SEO-BLOCK-END -->`;
+
+    const updated = html.replace(/<!-- SEO-BLOCK-START -->[\s\S]*?<!-- SEO-BLOCK-END -->/m, seoBlock);
+    if (updated === html) { console.warn('Bloc SEO introuvable dans index.html'); return; }
+
+    const b64 = btoa(unescape(encodeURIComponent(updated)));
+    await gitPut('index.html', b64, sha, `SEO: mise à jour — ${new Date().toLocaleDateString('fr-FR')}`);
+  } catch(e) {
+    console.warn('updateSeoInIndex non bloquant :', e);
+  }
+}
+
 async function saveContentToGit(data) {
   const json = JSON.stringify(data, null, 2);
   const b64  = btoa(unescape(encodeURIComponent(json)));
@@ -586,6 +634,20 @@ function schedulePreview() {
   clearTimeout(previewTimer);
   previewTimer = setTimeout(sendPreview, 300);
 }
+
+/* Bouton aperçu mobile — sauvegarde l'état dans localStorage avant d'ouvrir */
+document.addEventListener('DOMContentLoaded', () => {
+  const link = document.getElementById('mobilePreviewLink');
+  if (link) {
+    link.addEventListener('click', () => {
+      if (state) {
+        try {
+          localStorage.setItem('cms_live_preview', JSON.stringify({ data: buildPreviewData(), ts: Date.now() }));
+        } catch(e) {}
+      }
+    });
+  }
+});
 
 /* ══════════════════════════════════════════════════
    HELPERS
@@ -1103,6 +1165,8 @@ document.getElementById('publishBtn').addEventListener('click', async () => {
     }
     setStatus('Sauvegarde du contenu…', 'saving');
     await saveContentToGit(state);
+    setStatus('Mise à jour SEO…', 'saving');
+    await updateSeoInIndex();
     if (imgErrors.length > 0) {
       setStatus('Publié (images partielles)', 'saved');
       toast(`Contenu publié ✓ — ${imgErrors.length} image(s) échouée(s) : ${imgErrors.join(', ')}`, 'toast-error');
