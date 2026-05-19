@@ -420,16 +420,11 @@
       overflow: hidden;
     }
     .about-body.expanded { max-height: none; overflow: visible; }
-    #readMoreBtn {
-      position: absolute; bottom: 0; right: 0;
-      z-index: 2;
-      background: #fff; padding-left: 0.4rem;
-      color: var(--primary); font-weight: 700;
-      text-decoration: none; white-space: nowrap;
-      font-size: 0.95rem; line-height: 1.75;
-    }
+    .read-more-wrap { margin: 0.2rem 0 0; font-size: 0.95rem; line-height: 1.75; }
+    .read-more-dots { color: var(--muted); }
+    #readMoreBtn { color: var(--primary); font-weight: 700; text-decoration: none; }
     #readMoreBtn:hover { text-decoration: underline; }
-    .about-body-wrap.expanded #readMoreBtn { position: static; background: none; padding: 0; display: block; margin-top: 0.3rem; }
+    .about-body-wrap.expanded .read-more-dots { display: none; }
     .about-photo img {
       width: 100%; border-radius: 14px;
       aspect-ratio: 4/3; object-fit: cover; display: block;
@@ -826,7 +821,7 @@
       <div class="about-badges" id="aboutBadges"></div>
       <div class="about-body-wrap" id="aboutBodyWrap">
         <div class="about-body" id="aboutBody"></div>
-        <a href="#" class="read-more" id="readMoreBtn">… Lire la suite</a>
+        <p class="read-more-wrap" id="readMoreWrap"><span class="read-more-dots">… </span><a href="#" id="readMoreBtn">Lire la suite</a></p>
       </div>
       <div class="about-btns">
         <a href="#" class="btn btn-dark phone-link">
@@ -1092,7 +1087,7 @@
       e.preventDefault();
       const expanded = aboutBodyWrap.classList.toggle('expanded');
       aboutBody.classList.toggle('expanded', expanded);
-      readMoreBtn.textContent = expanded ? 'Réduire' : '… Lire la suite';
+      readMoreBtn.textContent = expanded ? 'Réduire' : 'Lire la suite';
     });
   }
 
