@@ -91,10 +91,6 @@
     {
       "image": "images/gallery6.png",
       "legende": "Réalisation 6"
-    },
-    {
-      "image": "images/1000127969.webp",
-      "legende": ""
     }
   ],
   "faq": [
@@ -125,13 +121,62 @@
   "horaires": {
     "visible": false,
     "jours": [
-      {"nom": "Lundi",    "ferme": false, "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"},
-      {"nom": "Mardi",    "ferme": false, "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"},
-      {"nom": "Mercredi", "ferme": false, "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"},
-      {"nom": "Jeudi",    "ferme": false, "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"},
-      {"nom": "Vendredi", "ferme": false, "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"},
-      {"nom": "Samedi",   "ferme": false, "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"},
-      {"nom": "Dimanche", "ferme": true,  "matin_debut": "09:00", "matin_fin": "12:00", "am_debut": "14:00", "am_fin": "18:00"}
+      {
+        "nom": "Lundi",
+        "ferme": false,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      },
+      {
+        "nom": "Mardi",
+        "ferme": false,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      },
+      {
+        "nom": "Mercredi",
+        "ferme": false,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      },
+      {
+        "nom": "Jeudi",
+        "ferme": false,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      },
+      {
+        "nom": "Vendredi",
+        "ferme": false,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      },
+      {
+        "nom": "Samedi",
+        "ferme": false,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      },
+      {
+        "nom": "Dimanche",
+        "ferme": true,
+        "matin_debut": "09:00",
+        "matin_fin": "12:00",
+        "am_debut": "14:00",
+        "am_fin": "18:00"
+      }
     ]
   }
 }
