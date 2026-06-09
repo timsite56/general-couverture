@@ -598,42 +598,124 @@ async function loadContentFromGit() {
   return JSON.parse(json);
 }
 
+// Mappe le métier vers le bon type Schema.org
+function schemaTypeForMetier(metier) {
+  const m = (metier || '').toLowerCase();
+  if (m.includes('couvreur') || m.includes('toiture') || m.includes('couverture')) return 'RoofingContractor';
+  if (m.includes('plombier') || m.includes('plomberie')) return 'Plumber';
+  if (m.includes('peintre') || m.includes('peinture')) return 'HousePainter';
+  if (m.includes('électr') || m.includes('electr')) return 'Electrician';
+  if (m.includes('menuis')) return 'HomeAndConstructionBusiness';
+  if (m.includes('maçon') || m.includes('macon') || m.includes('maconnerie')) return 'GeneralContractor';
+  if (m.includes('paysag') || m.includes('jardin')) return 'LandscapingBusiness';
+  if (m.includes('serrur')) return 'Locksmith';
+  return 'LocalBusiness';
+}
+
+function htmlAttr(s) { return String(s || '').replace(/<[^>]*>/g, '').replace(/"/g, '&quot;'); }
+
 async function updateSeoInIndex() {
   try {
     const fileData = await gitGet('index.html');
     let html = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
     const sha = fileData.sha;
 
-    const nom   = (state.nom_entreprise || '').replace(/"/g, '&quot;');
-    const type  = (state.type_artisan  || '').replace(/"/g, '&quot;');
-    const ville = (state.ville         || '').replace(/"/g, '&quot;');
+    const nom   = htmlAttr(state.nom_entreprise);
+    const type  = htmlAttr(state.type_artisan);
+    const ville = htmlAttr(state.ville);
     const tel   = state.telephone_tel  || state.telephone_affiche || '';
-    const rawDesc = (state.hero.description || state.hero.titre || '').replace(/<[^>]*>/g, '').replace(/"/g, '&quot;').slice(0, 155);
+    const rawDesc = htmlAttr(state.hero.description || state.hero.titre).slice(0, 160);
+    const siteUrl = window.location.origin + '/';
 
-    const title = [nom, type && ville ? `${type} à ${ville}` : (type || ville)].filter(Boolean).join(' — ');
+    const title    = [nom, type && ville ? `${type} à ${ville}` : (type || ville)].filter(Boolean).join(' — ');
+    const ogTitle  = title;
 
-    const schema = JSON.stringify({
+    // Mots-clés locaux dérivés des services
+    const svcTitles = (state.services || []).map(s => (s.titre || '').toLowerCase()).filter(Boolean);
+    const keywords = htmlAttr([`${(state.type_artisan||'').toLowerCase()} ${state.ville||''}`.trim(), ...svcTitles].join(', '));
+
+    // ── Schema LocalBusiness enrichi (type adapté au métier) ──
+    const business = {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
+      "@type": schemaTypeForMetier(state.type_artisan),
       "name": state.nom_entreprise || '',
-      "description": (state.hero.description || state.hero.titre || '').replace(/<[^>]*>/g, '').slice(0, 155),
+      "image": siteUrl + 'images/og-image.jpg',
+      "description": (state.footer_description || state.hero.description || '').replace(/<[^>]*>/g, '').slice(0, 200),
+      "url": siteUrl,
       "telephone": tel,
+      "priceRange": "€€",
       "address": { "@type": "PostalAddress", "addressLocality": state.ville || '', "addressCountry": "FR" },
-      "areaServed": state.ville || '',
-      "priceRange": "€€"
-    }, null, 2);
+      "areaServed": state.ville || ''
+    };
+    if (state.horaires && state.horaires.lat && state.horaires.lng) {
+      business.geo = { "@type": "GeoCoordinates", "latitude": state.horaires.lat, "longitude": state.horaires.lng };
+    }
+    if (state.services && state.services.length) {
+      business.hasOfferCatalog = {
+        "@type": "OfferCatalog", "name": "Nos services",
+        "itemListElement": state.services.map(s => ({
+          "@type": "Offer",
+          "itemOffered": { "@type": "Service", "name": s.titre || '', "description": (s.description || '').replace(/<[^>]*>/g, '') }
+        }))
+      };
+    }
+    const avisVisible = !(state.avis && state.avis.visible === false);
+    if (avisVisible && state.avis && state.avis.temoignages && state.avis.temoignages.length) {
+      business.aggregateRating = {
+        "@type": "AggregateRating",
+        "ratingValue": state.avis.google_score || "5.0",
+        "reviewCount": String(state.avis.temoignages.length),
+        "bestRating": "5"
+      };
+      business.review = state.avis.temoignages.map(t => ({
+        "@type": "Review",
+        "author": { "@type": "Person", "name": t.nom || 'Client' },
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "reviewBody": (t.texte || '').replace(/<[^>]*>/g, '')
+      }));
+    }
+    const schema = JSON.stringify(business, null, 2);
 
+    // ── Schema FAQ ──
+    let faqScript = '';
+    if (state.faq && state.faq.length) {
+      const faq = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": state.faq.map(q => ({
+          "@type": "Question",
+          "name": (q.question || '').replace(/<[^>]*>/g, ''),
+          "acceptedAnswer": { "@type": "Answer", "text": (q.reponse || '').replace(/<[^>]*>/g, '') }
+        }))
+      };
+      faqScript = `\n  <script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n  <\/script>`;
+    }
+
+    // ── Coordonnées géo en meta (si dispo) ──
+    let geoMeta = '';
+    if (state.horaires && state.horaires.lat && state.horaires.lng) {
+      geoMeta = `\n  <meta name="geo.placename" content="${ville}"/>\n  <meta name="geo.position" content="${state.horaires.lat};${state.horaires.lng}"/>\n  <meta name="ICBM" content="${state.horaires.lat}, ${state.horaires.lng}"/>`;
+    }
+
+    // og:image / twitter:image / twitter:card sont dans le bloc OG-IMAGE-PERSIST (hors SEO-BLOCK) → pas de doublon ici
     const seoBlock = `<!-- SEO-BLOCK-START -->
   <title>${title}</title>
   <meta name="description" content="${rawDesc}"/>
+  <meta name="keywords" content="${keywords}"/>
+  <meta name="author" content="${nom}"/>
   <meta name="robots" content="index, follow"/>
-  <meta property="og:title" content="${title}"/>
-  <meta property="og:description" content="${rawDesc}"/>
+  <link rel="canonical" href="${siteUrl}"/>${geoMeta}
   <meta property="og:type" content="website"/>
+  <meta property="og:url" content="${siteUrl}"/>
+  <meta property="og:title" content="${ogTitle}"/>
+  <meta property="og:description" content="${rawDesc}"/>
   <meta property="og:locale" content="fr_FR"/>
+  <meta property="og:site_name" content="${nom}"/>
+  <meta name="twitter:title" content="${ogTitle}"/>
+  <meta name="twitter:description" content="${rawDesc}"/>
   <script type="application/ld+json">
 ${schema}
-  <\/script>
+  <\/script>${faqScript}
   <!-- SEO-BLOCK-END -->`;
 
     const updated = html.replace(/<!-- SEO-BLOCK-START -->[\s\S]*?<!-- SEO-BLOCK-END -->/m, seoBlock);
