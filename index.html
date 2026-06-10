@@ -1246,7 +1246,12 @@
         var CLOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
         document.getElementById('horairesTable').innerHTML = horaires.jours.map(function(j) {
           if (j.ferme) return '<div class="horaire-row ferme"><span class="horaire-jour">' + CLOCK + ' ' + j.nom + '</span><span class="horaire-heures">Fermé</span></div>';
-          var h = j.matin_debut.replace(':','h') + ' - ' + j.matin_fin.replace(':','h') + ' / ' + j.am_debut.replace(':','h') + ' - ' + j.am_fin.replace(':','h');
+          var h;
+          if (j.am_active === false || !j.am_debut || !j.am_fin) {
+            h = j.matin_debut.replace(':','h') + ' - ' + j.matin_fin.replace(':','h');
+          } else {
+            h = j.matin_debut.replace(':','h') + ' - ' + j.matin_fin.replace(':','h') + ' / ' + j.am_debut.replace(':','h') + ' - ' + j.am_fin.replace(':','h');
+          }
           return '<div class="horaire-row"><span class="horaire-jour">' + CLOCK + ' ' + j.nom + '</span><span class="horaire-heures">' + h + '</span></div>';
         }).join('');
       }
