@@ -6,7 +6,7 @@ Tout le contenu est dans ce fichier (SITE, SERVICES, ZONES, REVIEWS, FAQ_HOME, G
 import json, os, datetime
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-V = "14"  # cache-busting css/js
+V = "16"  # cache-busting css/js
 
 SITE = dict(
     name="Général Couverture", mark="GC", tagline="Couvreur à Angers",
@@ -137,21 +137,29 @@ GALLERY = [
 ]
 
 # ----------------------------------------------------------------------------- gabarits
+def href(path):
+    """URL propre : index.html -> /, page.html -> /page (le Worker Cloudflare sert les pages sans extension)."""
+    if path.startswith("http"): return path
+    base, _, frag = path.partition("#")
+    if base in ("", "index.html"): base = "/"
+    elif base.endswith(".html"): base = "/" + base[:-5]
+    return base + ("#" + frag if frag else "")
+
 def esc(s): return s.replace("&", "&amp;").replace('"', "&quot;")
 
 def header():
-    subs = "".join(f'<a href="{s["slug"]}.html">{s["nav"]}</a>' for s in SERVICES)
+    subs = "".join(f'<a href="{href(s["slug"] + ".html")}">{s["nav"]}</a>' for s in SERVICES)
     return f'''<header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="index.html" aria-label="{N}, accueil">
+    <a class="brand" href="{href('index.html')}" aria-label="{N}, accueil">
       <span class="brand-mark">{SITE["mark"]}</span>
       <span class="brand-text"><strong>{N}</strong><small>{SITE["tagline"]}</small></span>
     </a>
     <nav class="nav" id="nav" aria-label="Navigation principale">
-      <div class="nav-item"><a href="index.html#services">Services</a><div class="sub">{subs}</div></div>
-      <a href="index.html#realisations">Réalisations</a>
-      <a href="zones-intervention.html">Zone d'intervention</a>
-      <a href="contact.html">Contact</a>
+      <div class="nav-item"><a href="{href('index.html#services')}">Services</a><div class="sub">{subs}</div></div>
+      <a href="{href('index.html#realisations')}">Réalisations</a>
+      <a href="{href('zones-intervention.html')}">Zone d'intervention</a>
+      <a href="{href('contact.html')}">Contact</a>
       <a class="btn btn-accent nav-cta" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a>
     </nav>
     <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="nav"><span></span></button>
@@ -159,12 +167,12 @@ def header():
 </header>'''
 
 def footer():
-    srv = "".join(f'<li><a href="{s["slug"]}.html">{s["title"]}</a></li>' for s in SERVICES)
+    srv = "".join(f'<li><a href="{href(s["slug"] + ".html")}">{s["title"]}</a></li>' for s in SERVICES)
     return f'''<footer class="footer">
   <div class="wrap">
     <div class="footer-grid">
       <div>
-        <a class="brand" href="index.html"><span class="brand-mark">{SITE["mark"]}</span><span class="brand-text"><strong>{N}</strong><small>{SITE["tagline"]}</small></span></a>
+        <a class="brand" href="{href('index.html')}"><span class="brand-mark">{SITE["mark"]}</span><span class="brand-text"><strong>{N}</strong><small>{SITE["tagline"]}</small></span></a>
         <p class="footer-desc">Couvreur certifié RGE à Angers, intervenant dans tout le Maine-et-Loire : rénovation, toiture neuve, entretien, zinguerie, Velux et peinture de toiture.</p>
       </div>
       <div><h4>Nos services</h4><ul>{srv}</ul></div>
@@ -172,9 +180,9 @@ def footer():
         <li><a href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a></li>
         <li>{SITE["hours"]}</li>
         <li>Angers · {SITE["dept"]}</li>
-        <li><a href="zones-intervention.html">Zone d'intervention</a></li>
-        <li><a href="contact.html">Demander un devis</a></li>
-        <li><a href="mentions-legales.html">Mentions légales</a></li>
+        <li><a href="{href('zones-intervention.html')}">Zone d'intervention</a></li>
+        <li><a href="{href('contact.html')}">Demander un devis</a></li>
+        <li><a href="{href('mentions-legales.html')}">Mentions légales</a></li>
       </ul></div>
     </div>
     <div class="footer-bottom"><span>© {SITE["year"]} {N} · Angers</span><span>Certifié RGE · Garantie décennale · Devis gratuit</span></div>
@@ -184,7 +192,7 @@ def footer():
 <script src="js/site.js?v={V}"></script>'''
 
 def layout(title, desc, body, path, extra_head="", scripts="", og_image="images/og-image.jpg"):
-    canonical = f'{SITE["url"]}/' if path == "index.html" else f'{SITE["url"]}/{path}'
+    canonical = SITE["url"] + href(path)
     return f'''<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -226,7 +234,7 @@ def cta_band(title="Un projet de toiture ? Parlons-en.", text="Devis gratuit et 
     <div>
       <a class="cta-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a>
       <p>{SITE["hours"]} · Urgence fuite : appelez-nous.</p>
-      <div class="btn-row"><a class="btn btn-accent" href="contact.html">Demander un devis</a><a class="btn btn-ghost-light" href="zones-intervention.html">Zone d'intervention</a></div>
+      <div class="btn-row"><a class="btn btn-accent" href="{href('contact.html')}">Demander un devis</a><a class="btn btn-ghost-light" href="{href('zones-intervention.html')}">Zone d'intervention</a></div>
     </div>
   </div>
 </section>'''
@@ -255,8 +263,8 @@ def service_cards(exclude=None):
     out = []
     for s in SERVICES:
         if s["slug"] == exclude: continue
-        out.append(f'''<article class="card"><a href="{s["slug"]}.html"><img src="{s["img"]}" alt="{esc(s["title"])}" loading="lazy" width="800" height="600"></a>
-  <div class="card-body"><h3><a href="{s["slug"]}.html">{s["title"]}</a></h3><p>{s["short"]}</p><a class="link-arrow" href="{s["slug"]}.html">En savoir plus</a></div></article>''')
+        out.append(f'''<article class="card"><a href="{href(s["slug"] + ".html")}"><img src="{s["img"]}" alt="{esc(s["title"])}" loading="lazy" width="800" height="600"></a>
+  <div class="card-body"><h3><a href="{href(s["slug"] + ".html")}">{s["title"]}</a></h3><p>{s["short"]}</p><a class="link-arrow" href="{href(s["slug"] + ".html")}">En savoir plus</a></div></article>''')
     return "".join(out)
 
 def faq_block(items):
@@ -273,7 +281,7 @@ ORG = {
   "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], "opens": "08:30", "closes": "18:00"}],
   "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5.0", "reviewCount": str(len(REVIEWS))},
   "hasOfferCatalog": {"@type": "OfferCatalog", "name": "Services de couverture", "itemListElement": [
-      {"@type": "Offer", "itemOffered": {"@type": "Service", "name": s["title"], "url": f'{SITE["url"]}/{s["slug"]}.html'}} for s in SERVICES]},
+      {"@type": "Offer", "itemOffered": {"@type": "Service", "name": s["title"], "url": SITE["url"] + href(s["slug"] + ".html")}} for s in SERVICES]},
 }
 
 # ----------------------------------------------------------------------------- accueil
@@ -299,7 +307,7 @@ def build_index():
       <span class="step-num">Couvreur à Angers · Maine-et-Loire</span>
       <h1>Votre toiture entre de bonnes mains</h1>
       <p class="lead">Rénovation, toiture neuve, réparation de fuite, zinguerie : {N} intervient à Angers et dans tout le Maine-et-Loire. Certifié RGE, garantie décennale, devis gratuit.</p>
-      <div class="btn-row"><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">Appeler · {SITE["tel"]}</a><a class="btn btn-ghost-light" href="contact.html">Demander un devis</a></div>
+      <div class="btn-row"><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">Appeler · {SITE["tel"]}</a><a class="btn btn-ghost-light" href="{href('contact.html')}">Demander un devis</a></div>
       <ul class="hero-chips"><li>20 ans d'expérience</li><li>500 chantiers réalisés</li><li>Note Google 5,0</li></ul>
     </div></article>
     <article class="step" data-ch="1"><div class="step-inner">
@@ -311,7 +319,7 @@ def build_index():
       <span class="step-num">02 · La couverture</span>
       <h2>Les tuiles, rangée après rangée.</h2>
       <p>Écran sous-toiture, liteaux, puis les tuiles posées de l'égout jusqu'au faîtage. Une pose dans les règles de l'art, pour une toiture qui dure des décennies.</p>
-      <a class="link-arrow step-cta" href="pose-toiture-neuve.html" style="color:#f0a070">Pose de toiture neuve</a>
+      <a class="link-arrow step-cta" href="{href('pose-toiture-neuve.html')}" style="color:#f0a070">Pose de toiture neuve</a>
     </div></article>
     <article class="step" data-ch="3"><div class="step-inner">
       <span class="step-num">03 · Couche par couche</span>
@@ -342,7 +350,7 @@ def build_index():
         <p class="choice-label">Lumière</p>
         <div class="choice-row"><button class="chip-btn is-active" data-light="jour">Jour</button><button class="chip-btn" data-light="soir">Coucher de soleil</button><button class="chip-btn" data-light="nuit">Nuit</button></div>
       </div>
-      <div class="btn-row step-cta"><a class="btn btn-accent" href="contact.html">Demander un devis gratuit</a></div>
+      <div class="btn-row step-cta"><a class="btn btn-accent" href="{href('contact.html')}">Demander un devis gratuit</a></div>
     </div></article>
   </div>
 </section>'''
@@ -384,9 +392,9 @@ def build_index():
   <div class="section-head"><span class="kicker">Avis clients</span><h2>Ce que disent nos clients.</h2><p class="google-badge"><span class="stars">★★★★★</span> 5,0 sur Google · {len(REVIEWS)} avis</p></div>
   <div class="reviews">{revs}</div>
 </div></section>'''
-    towns = "".join(f'<li><a href="zones-intervention.html#{slugify(z[0])}">{z[0]}</a></li>' for z in ZONES)
+    towns = "".join(f'<li><a href="{href("zones-intervention.html#" + slugify(z[0]))}">{z[0]}</a></li>' for z in ZONES)
     zones = f'''<section class="section section-alt" id="zone"><div class="wrap zone-grid">
-  <div><span class="kicker">Zone d'intervention</span><h2>Angers et tout le Maine-et-Loire.</h2><p class="lead">Basés aux Garennes-sur-Loire, à dix minutes d'Angers, nous intervenons dans toute l'agglomération et le département, en urgence comme pour les chantiers programmés.</p><a class="link-arrow" href="zones-intervention.html">Voir toutes les communes</a></div>
+  <div><span class="kicker">Zone d'intervention</span><h2>Angers et tout le Maine-et-Loire.</h2><p class="lead">Basés aux Garennes-sur-Loire, à dix minutes d'Angers, nous intervenons dans toute l'agglomération et le département, en urgence comme pour les chantiers programmés.</p><a class="link-arrow" href="{href('zones-intervention.html')}">Voir toutes les communes</a></div>
   <ul class="towns">{towns}</ul>
 </div></section>'''
     faq = f'''<section class="section" id="faq"><div class="wrap">
@@ -424,11 +432,11 @@ def build_service(s):
   <li><h3>RGE et garantie décennale</h3><p>Entreprise certifiée, assurée, qui vous ouvre droit aux aides de l'État pour les travaux de rénovation énergétique.</p></li>
 </ul>'''
     hero = f'''<section class="page-hero"><img class="hero-bg" src="{s["img"]}" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap">
-  <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>›</span><a href="index.html#services">Services</a><span>›</span><span>{s["title"]}</span></nav>
+  <nav class="crumbs" aria-label="Fil d'Ariane"><a href="{href('index.html')}">Accueil</a><span>›</span><a href="{href('index.html#services')}">Services</a><span>›</span><span>{s["title"]}</span></nav>
   <span class="kicker">Couvreur à Angers · Maine-et-Loire</span>
   <h1>{s["h1"]}</h1>
   <p class="lead">{s["intro"]}</p>
-  <div class="btn-row"><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">Appeler · {SITE["tel"]}</a><a class="btn btn-ghost-light" href="contact.html">Demander un devis</a></div>
+  <div class="btn-row"><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">Appeler · {SITE["tel"]}</a><a class="btn btn-ghost-light" href="{href('contact.html')}">Demander un devis</a></div>
 </div></section>'''
     main = f'''<section class="section"><div class="wrap service-grid">
   <div class="service-main">
@@ -441,17 +449,17 @@ def build_service(s):
   </div>
   <aside><div class="aside-card"><h3>Devis gratuit</h3><p>Visite sur site, diagnostic et devis chiffré poste par poste, sans engagement.</p>
     <a class="btn btn-accent" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a>
-    <a class="btn btn-ghost-light" href="contact.html" style="margin-top:0.6em">Écrire via le formulaire</a>
+    <a class="btn btn-ghost-light" href="{href('contact.html')}" style="margin-top:0.6em">Écrire via le formulaire</a>
     <ul><li>Certifié RGE</li><li>Garantie décennale</li><li>{SITE["hours"]}</li><li>Angers et Maine-et-Loire</li></ul></div></aside>
 </div></section>
 <section class="section section-alt"><div class="wrap"><div class="section-head"><span class="kicker">Pourquoi {N}</span><h2>Ce qui fait la différence sur un toit.</h2></div>{reasons}</div></section>
 <section class="section"><div class="wrap"><div class="section-head"><span class="kicker">Nos autres services</span><h2>Tout ce qu'il faut pour votre toiture.</h2></div><div class="cards">{service_cards(exclude=s["slug"])}</div></div></section>
 {cta_band()}'''
-    ld = [{"@context": "https://schema.org", "@type": "Service", "name": s["title"], "serviceType": s["title"], "provider": {"@id": SITE["url"] + "/#org"}, "areaServed": [z[0] for z in ZONES], "url": f'{SITE["url"]}/{s["slug"]}.html', "description": s["seo_desc"]},
+    ld = [{"@context": "https://schema.org", "@type": "Service", "name": s["title"], "serviceType": s["title"], "provider": {"@id": SITE["url"] + "/#org"}, "areaServed": [z[0] for z in ZONES], "url": SITE["url"] + href(s["slug"] + ".html"), "description": s["seo_desc"]},
           {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
               {"@type": "ListItem", "position": 1, "name": "Accueil", "item": SITE["url"] + "/"},
-              {"@type": "ListItem", "position": 2, "name": "Services", "item": SITE["url"] + "/index.html#services"},
-              {"@type": "ListItem", "position": 3, "name": s["title"], "item": f'{SITE["url"]}/{s["slug"]}.html'}]},
+              {"@type": "ListItem", "position": 2, "name": "Services", "item": SITE["url"] + "/#services"},
+              {"@type": "ListItem", "position": 3, "name": s["title"], "item": SITE["url"] + href(s["slug"] + ".html")}]},
           {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in s["faq"]]}]
     return layout(s["seo_title"], s["seo_desc"], hero + main, s["slug"] + ".html", "\n".join(jsonld(x) for x in ld), og_image=s["img"])
 
@@ -459,11 +467,11 @@ def build_service(s):
 def build_zones():
     cards = "".join(f'<li id="{slugify(n)}"><h3>Couvreur à {n}</h3><p>{t}</p></li>' for n, t in ZONES)
     hero = f'''<section class="page-hero"><img class="hero-bg" src="images/hero-bg.jpg" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap">
-  <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>›</span><span>Zone d'intervention</span></nav>
+  <nav class="crumbs" aria-label="Fil d'Ariane"><a href="{href('index.html')}">Accueil</a><span>›</span><span>Zone d'intervention</span></nav>
   <span class="kicker">Zone d'intervention</span>
   <h1>Couvreur à Angers et dans tout le Maine-et-Loire</h1>
   <p class="lead">Basés aux Garennes-sur-Loire, à dix minutes d'Angers, nous intervenons dans toute l'agglomération angevine et le département : dépannage de fuite, rénovation, toiture neuve, zinguerie, Velux et entretien.</p>
-  <div class="btn-row"><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">Appeler · {SITE["tel"]}</a><a class="btn btn-ghost-light" href="contact.html">Demander un devis</a></div>
+  <div class="btn-row"><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">Appeler · {SITE["tel"]}</a><a class="btn btn-ghost-light" href="{href('contact.html')}">Demander un devis</a></div>
 </div></section>'''
     body = hero + f'''<section class="section"><div class="wrap">
   <div class="section-head"><span class="kicker">Nos communes</span><h2>Là où nous travaillons chaque semaine.</h2><p>Un déplacement rapide, une connaissance des toitures locales, de l'ardoise de Trélazé à la tuile des pavillons récents.</p></div>
@@ -477,7 +485,7 @@ def build_zones():
 # ----------------------------------------------------------------------------- contact
 def build_contact():
     hero = f'''<section class="page-hero"><img class="hero-bg" src="images/apropos.webp" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap">
-  <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>›</span><span>Contact</span></nav>
+  <nav class="crumbs" aria-label="Fil d'Ariane"><a href="{href('index.html')}">Accueil</a><span>›</span><span>Contact</span></nav>
   <span class="kicker">Contact et devis</span>
   <h1>Parlons de votre toiture.</h1>
   <p class="lead">Un appel suffit pour une urgence. Pour un devis, décrivez-nous votre projet : nous vous rappelons sous 24 h ouvrées et nous fixons une visite.</p>
@@ -494,7 +502,7 @@ def build_contact():
 
 # ----------------------------------------------------------------------------- mentions + 404
 def build_mentions():
-    body = f'''<section class="page-hero"><img class="hero-bg" src="images/hero-bg.jpg" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap"><nav class="crumbs"><a href="index.html">Accueil</a><span>›</span><span>Mentions légales</span></nav><h1>Mentions légales</h1></div></section>
+    body = f'''<section class="page-hero"><img class="hero-bg" src="images/hero-bg.jpg" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap"><nav class="crumbs"><a href="{href('index.html')}">Accueil</a><span>›</span><span>Mentions légales</span></nav><h1>Mentions légales</h1></div></section>
 <section class="section"><div class="wrap legal" style="max-width:820px">
   <h2>Éditeur du site</h2>
   <p>{N}, entreprise de couverture, Les Garennes-sur-Loire – Angers (Maine-et-Loire). Téléphone : {SITE["tel"]}. Directeur de la publication : le gérant de l'entreprise.</p>
@@ -508,7 +516,7 @@ def build_mentions():
     return layout("Mentions légales | Général Couverture", "Mentions légales du site de Général Couverture, couvreur à Angers.", body, "mentions-legales.html")
 
 def build_404():
-    body = f'''<section class="page-hero"><img class="hero-bg" src="images/hero-bg.jpg" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap"><span class="kicker">Erreur 404</span><h1>Cette page n'existe pas.</h1><p class="lead">Le lien est peut-être ancien. Retrouvez nos services ou appelez-nous directement.</p><div class="btn-row"><a class="btn btn-light" href="index.html">Retour à l'accueil</a><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a></div></div></section>'''
+    body = f'''<section class="page-hero"><img class="hero-bg" src="images/hero-bg.jpg" alt="" aria-hidden="true" width="1600" height="900"><div class="wrap"><span class="kicker">Erreur 404</span><h1>Cette page n'existe pas.</h1><p class="lead">Le lien est peut-être ancien. Retrouvez nos services ou appelez-nous directement.</p><div class="btn-row"><a class="btn btn-light" href="{href('index.html')}">Retour à l'accueil</a><a class="btn btn-accent" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a></div></div></section>'''
     return layout("Page introuvable | Général Couverture", "Page introuvable.", body, "404.html")
 
 # ----------------------------------------------------------------------------- écriture
@@ -525,7 +533,7 @@ def main():
     write("mentions-legales.html", build_mentions())
     write("404.html", build_404())
     today = datetime.date.today().isoformat()
-    urls = "".join(f'  <url><loc>{SITE["url"]}/{"" if p == "index.html" else p}</loc><lastmod>{today}</lastmod><changefreq>monthly</changefreq><priority>{"1.0" if p == "index.html" else "0.8"}</priority></url>\n' for p in pages)
+    urls = "".join(f'  <url><loc>{SITE["url"]}{href(p)}</loc><lastmod>{today}</lastmod><changefreq>monthly</changefreq><priority>{"1.0" if p == "index.html" else "0.8"}</priority></url>\n' for p in pages)
     write("sitemap.xml", f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}</urlset>\n')
     write("robots.txt", f'User-agent: *\nAllow: /\n\nSitemap: {SITE["url"]}/sitemap.xml\n')
 

@@ -46,6 +46,7 @@ h3 { font-size: 1.2rem; letter-spacing: -0.01em; }
 p { margin: 0 0 1em; }
 ul { margin: 0; padding: 0; list-style: none; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+[id] { scroll-margin-top: calc(var(--header-h) + 16px); }
 .muted { color: var(--muted); }
 .kicker {
   display: inline-block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
