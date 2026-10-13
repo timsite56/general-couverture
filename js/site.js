@@ -1,4 +1,4 @@
-// Général Couverture — interactions : en-tête (indicateur de section), menu, carrousel 3D, bande en perspective, avant/après, formulaire
+// Général Couverture — interactions : en-tête, menu, cartes de services au défilement, bande en perspective, avant/après, formulaire
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -6,6 +6,12 @@
   const isMobile = () => innerWidth <= 820;
   const params = new URLSearchParams(location.search);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pad2 = (n) => String(n).padStart(2, '0');
+
+  // ---------- en-tête : transparent en haut, verre bleu nuit ensuite ----------
+  const header = $('#header');
+  const onScrollHeader = () => header && header.classList.toggle('is-scrolled', scrollY > 24);
+  addEventListener('scroll', onScrollHeader, { passive: true }); onScrollHeader();
 
   // ---------- menu plein écran ----------
   const burger = $('#burger'), menu = $('#menu');
@@ -37,56 +43,54 @@
     reveals.forEach((el) => io.observe(el));
   } else reveals.forEach((el) => el.classList.add('in'));
 
-  // ---------- carrousel 3D des services (arc de cartes, repositionnées à chaque image) ----------
-  const ringWrap = $('.ring-wrap');
-  if (ringWrap) {
-    const ring = $('.ring', ringWrap), cards = $$('.ring-card', ringWrap), N = cards.length;
-    const SPAN = () => (isMobile() ? 42 : 34), COVER = () => SPAN() * N;
-    const navBtns = $$('.ring-nav button'), titleEl = $('#ring-title'), labelEl = $('#ring-label'), linkEl = $('#ring-link');
-    let rot = 0, target = 0, R = 1000, dragging = false, startX = 0, startT = 0, moved = 0, wheelTimer = 0, idle = 0, hover = false;
-    function layout() {
-      const cw = isMobile() ? Math.min(innerWidth * 0.76, 440) : Math.min(innerWidth * 0.42, 680);
-      ringWrap.style.setProperty('--cw', cw + 'px');
-      R = (cw + (isMobile() ? 24 : 56)) / (2 * Math.sin(SPAN() / 2 * Math.PI / 180));
-      ring.style.transform = `translateZ(${-R}px)`;
+  // ---------- services : cartes 3D pilotées par le défilement ----------
+  const deckSec = $('.deck-section');
+  if (deckSec) {
+    const stageEl = $('.deck-stage', deckSec), cards = $$('.deck-card', deckSec), N = cards.length;
+    const curEl = $('#deck-cur'), titleEl = $('#deck-title'), descEl = $('#deck-desc'), linkEl = $('#deck-link'), dots = $$('.deck-dots button'), hint = $('.deck-hint');
+    let cur = 0, shown = -1, mx = 0, my = 0, started = false;
+    const range = () => Math.max(1, deckSec.offsetHeight - stageEl.offsetHeight);
+    const progress = () => clamp(-deckSec.getBoundingClientRect().top / range(), 0, 1) * (N - 1);
+    function place(i, d) {
+      const c = cards[i], mobile = isMobile(), side = i % 2 ? 1 : -1;
+      let x, y, z, ry, rx, op, bl;
+      if (d >= 0) {
+        x = side * Math.min(d, 2.2) * (mobile ? 44 : 150); y = d * (mobile ? 26 : 30); z = -d * (mobile ? 520 : 760);
+        ry = -side * Math.min(d, 1.6) * 13; rx = 0;
+        op = clamp(1 - (d - 0.25) * 0.3, 0.04, 1); bl = clamp((d - 0.4) * 2.4, 0, 9);
+      } else {
+        const e = -d;
+        x = -side * e * 140; y = -e * (mobile ? 240 : 340); z = e * 460; ry = side * e * 12; rx = e * 20;
+        op = clamp(1 - e * 1.6, 0, 1); bl = clamp(e * 7, 0, 9);
+      }
+      const front = Math.abs(d) < 0.5;
+      c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${(ry + (front ? mx : 0)).toFixed(2)}deg) rotateX(${(rx + (front ? my : 0)).toFixed(2)}deg)`;
+      c.style.opacity = op.toFixed(3);
+      c.style.filter = bl > 0.05 ? `blur(${bl.toFixed(2)}px)` : 'none';
+      c.style.zIndex = String(100 - Math.round(Math.abs(d) * 10));
+      c.style.visibility = (op < 0.02 || d > 2.6) ? 'hidden' : 'visible';
+      c.classList.toggle('is-front', front);
     }
-    const wrapA = (a) => { const c = COVER(); return ((a % c) + c * 1.5) % c - c / 2; };
-    const front = () => ((Math.round(target / SPAN()) % N) + N) % N;
-    function setActive() {
-      const i = front(), c = cards[i];
-      navBtns.forEach((b, k) => b.classList.toggle('is-active', k === i));
-      if (titleEl && titleEl.dataset.idx !== String(i)) { titleEl.dataset.idx = String(i); titleEl.innerHTML = c.dataset.title; labelEl.textContent = c.dataset.label; linkEl.href = c.dataset.href; }
+    function setText(i) {
+      if (shown === i) return; shown = i; const c = cards[i];
+      curEl.textContent = pad2(i + 1); titleEl.innerHTML = c.dataset.title; descEl.textContent = c.dataset.desc; linkEl.href = c.dataset.href;
+      dots.forEach((b, k) => b.classList.toggle('is-active', k === i));
+      titleEl.classList.remove('swap'); void titleEl.offsetWidth; titleEl.classList.add('swap');
     }
-    function render() {
-      rot += (target - rot) * (dragging ? 0.45 : 0.1);
-      const S = SPAN();
-      cards.forEach((c, i) => {
-        const a = wrapA(i * S - rot), d = Math.abs(a) / S;
-        const t = clamp(1 - Math.max(0, d - 0.5), 0, 1);
-        c.style.transform = `rotateY(${a.toFixed(2)}deg) translateZ(${R.toFixed(1)}px)`;
-        c.style.opacity = (0.08 + 0.92 * t).toFixed(3);
-        c.style.filter = `blur(${((1 - t) * 4).toFixed(2)}px)`;
-        c.style.visibility = d > 1.9 ? 'hidden' : 'visible';
-        c.classList.toggle('is-front', d < 0.5);
-      });
-      setActive();
-      requestAnimationFrame(render);
+    function frame() {
+      const target = progress();
+      cur += (target - cur) * (reduced ? 1 : 0.14);
+      if (Math.abs(target - cur) < 0.0005) cur = target;
+      if (!started && target > 0.05) { started = true; if (hint) hint.classList.add('is-hidden'); }
+      cards.forEach((c, i) => place(i, i - cur));
+      setText(clamp(Math.round(cur), 0, N - 1));
+      requestAnimationFrame(frame);
     }
-    const snap = () => { target = Math.round(target / SPAN()) * SPAN(); };
-    const goTo = (i) => { const S = SPAN(), cur = Math.round(target / S); let d = i - ((cur % N) + N) % N; if (d > N / 2) d -= N; if (d < -N / 2) d += N; target = (cur + d) * S; };
-    ringWrap.addEventListener('pointerdown', (e) => { dragging = true; startX = e.clientX; startT = target; moved = 0; idle = -40; ringWrap.classList.add('is-dragging'); ringWrap.setPointerCapture(e.pointerId); });
-    ringWrap.addEventListener('pointermove', (e) => { if (!dragging) return; const dx = e.clientX - startX; moved = Math.max(moved, Math.abs(dx)); target = startT - dx * (isMobile() ? 0.22 : 0.12); });
-    const end = (e) => { if (!dragging) return; dragging = false; ringWrap.classList.remove('is-dragging'); snap(); if (moved < 6 && e.target.closest && e.target.closest('.ring-card.is-front')) location.href = e.target.closest('.ring-card').dataset.href; };
-    ringWrap.addEventListener('pointerup', end); ringWrap.addEventListener('pointercancel', end);
-    ringWrap.addEventListener('pointerenter', () => { hover = true; }); ringWrap.addEventListener('pointerleave', () => { hover = false; });
-    ringWrap.addEventListener('wheel', (e) => { if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return; e.preventDefault(); target += e.deltaX * 0.15; idle = -20; clearTimeout(wheelTimer); wheelTimer = setTimeout(snap, 160); }, { passive: false });
-    navBtns.forEach((b, i) => b.addEventListener('click', () => { goTo(i); idle = -30; }));
-    const prev = $('#ring-prev'), next = $('#ring-next');
-    if (prev) prev.addEventListener('click', () => { target -= SPAN(); idle = -30; });
-    if (next) next.addEventListener('click', () => { target += SPAN(); idle = -30; });
-    addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') target += SPAN(); if (e.key === 'ArrowLeft') target -= SPAN(); });
-    setInterval(() => { if (!dragging && !hover && !reduced && document.visibilityState === 'visible') { idle += 1; if (idle > 7) { target += SPAN(); idle = 0; } } }, 1000);
-    addEventListener('resize', layout); layout(); render();
+    dots.forEach((b, i) => b.addEventListener('click', () => { const r = deckSec.getBoundingClientRect(); scrollTo({ top: scrollY + r.top + range() * i / (N - 1), behavior: reduced ? 'auto' : 'smooth' }); }));
+    cards.forEach((c) => c.addEventListener('click', () => { if (c.classList.contains('is-front')) location.href = c.dataset.href; }));
+    stageEl.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') return; const r = stageEl.getBoundingClientRect(); mx = ((e.clientX - r.left) / r.width - 0.5) * 9; my = ((e.clientY - r.top) / r.height - 0.5) * -7; });
+    stageEl.addEventListener('pointerleave', () => { mx = 0; my = 0; });
+    frame();
   }
 
   // ---------- bande de réalisations en perspective ----------
@@ -117,6 +121,9 @@
     range.addEventListener('input', () => set(range.value)); set(range.value);
     range.addEventListener('pointerdown', (e) => e.stopPropagation());
   });
+
+  // ---------- curseurs : remplissage doré de la piste ----------
+  $$('.slider').forEach((r) => { const f = () => r.style.setProperty('--fill', ((r.value - r.min) / (r.max - r.min) * 100) + '%'); r.addEventListener('input', f); f(); });
 
   // ---------- captures de contrôle ----------
   const to = params.get('to');

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Générateur du site Général Couverture — direction « studio » (gris chaud, capitales grasses, carrousel 3D).
+"""Générateur du site Général Couverture — direction « studio » v5 (bleu nuit, crème, or champagne ; atelier 3D, cartes au défilement).
 Usage : python3 gen.py  → index.html, pages services, zones, contact, mentions, 404, sitemap, robots."""
 import json, os, datetime, re, unicodedata
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-V = "34"
+V = "40"
 
 SITE = dict(name="Général Couverture", tel="06 21 32 37 89", tel_link="+33621323789", url="https://generalcouverture.com",
             ville="Angers", dept="Maine-et-Loire", base="Les Garennes-sur-Loire", hours="Du lundi au samedi, 8h30 – 18h",
@@ -127,10 +127,33 @@ FAQ_HOME = [
 BA = [
  ("maison-1", "images/ba/maison-1-apres.jpg", "images/ba/maison-1-avant.jpg", "Réfection /<br>ardoise naturelle", "Rénovation de toiture", "Réfection complète d'une couverture en ardoise naturelle"),
  ("maison-2", "images/ba/maison-2-apres.jpg", "images/ba/maison-2-avant.jpg", "Côté jardin /<br>zinguerie reprise", "Rénovation de toiture", "La même maison, côté jardin : ardoise neuve et zinguerie reprise"),
- ("velux",    "images/ba/velux-apres.jpg",    "images/ba/velux-avant.jpg",    "Fenêtre de toit /<br>création", "Pose de Velux", "Création d'une fenêtre de toit sur une couverture en tuiles"),
  ("faitage",  "images/ba/faitage-apres.jpg",  "images/ba/faitage-avant.jpg",  "Faîtage neuf /<br>closoir ventilé", "Rénovation de toiture", "Faîtage neuf : closoir ventilé et tuiles faîtières"),
 ]
-PHOTOS = [("images/photo-velux-ardoise.webp", "Velux sur ardoise /<br>liteaunage neuf", "Pose de Velux", "Fenêtre de toit sur couverture ardoise, liteaunage neuf")]
+PHOTOS = []
+
+# L'atelier 3D : matières, couches, désordres (textes affichés dans le panneau)
+MATS = [
+ ("tuile", "Tuile terre cuite", "Terre cuite", "La couverture angevine par excellence : chaude, durable, posée à l'emboîtement ou à recouvrement.", [("Durée de vie", "50 ans et plus"), ("Pente", "Moyenne à forte"), ("Entretien", "Démoussage régulier")]),
+ ("beton", "Tuile béton", "Teinte ardoisée", "Économique et robuste. Elle se décolore avec les années, puis se nettoie et se peint très bien.", [("Durée de vie", "30 à 50 ans"), ("Pente", "Moyenne"), ("Entretien", "Nettoyage, peinture possible")]),
+ ("ardoise", "Ardoise naturelle", "Schiste de Trélazé", "La fierté d'Angers : fine, sombre, quasi inusable, fixée au crochet inox.", [("Durée de vie", "80 à 100 ans"), ("Pente", "Forte"), ("Entretien", "Très faible")]),
+ ("zinc", "Zinc à joint debout", "Métal", "Pour les faibles pentes, les extensions et les lucarnes : étanche, léger, patine naturelle.", [("Durée de vie", "50 ans et plus"), ("Pente", "Faible possible"), ("Entretien", "Aucun")]),
+]
+LAYERS = [
+ ("couverture", "Couverture", "Tuiles, ardoises ou zinc : la peau qui évacue l'eau. C'est elle que l'on voit, c'est elle que l'on répare le plus souvent."),
+ ("liteaux", "Liteaux", "Les tasseaux de bois qui portent chaque rang de tuiles. Un liteaunage régulier, c'est une couverture qui reste droite."),
+ ("ecran", "Écran sous-toiture", "La membrane qui arrête l'eau et la neige poudreuse passées sous les tuiles, et qui laisse respirer la charpente."),
+ ("isolation", "Isolation", "Le confort d'été, les économies d'hiver et les aides de l'État se jouent dans cette couche. Nous sommes certifiés RGE."),
+ ("charpente", "Charpente", "Pannes, chevrons, fermes : la structure qui porte tout. Nous la vérifions et la traitons avant de couvrir."),
+]
+# (id, titre, où, symptôme, intervention, page, libellé du lien)
+HOTSPOTS = [
+ ("tuile", "Tuile glissée", "Versant sud", "Une tuile déplacée par le vent ou le gel laisse passer l'eau à chaque averse. Au plafond, l'auréole apparaît des mois plus tard.", "Remplacement de la tuile, contrôle des rangs voisins et de l'écran sous-toiture. Intervention rapide.", "renovation-reparation-toiture", "Rénovation et réparation"),
+ ("usure", "Couverture en fin de vie", "Versant sud", "Tuiles poreuses, fendues, qui cassent au moindre passage : les réparations se multiplient et coûtent plus cher qu'une réfection.", "Dépose, écran sous-toiture, liteaunage et couverture neuve, sous garantie décennale.", "pose-toiture-neuve", "Pose de toiture neuve"),
+ ("mousse", "Mousse sur le versant nord", "Versant nord", "Invisible depuis la rue, la mousse retient l'eau toute l'année, soulève les tuiles et bouche les gouttières.", "Démoussage manuel ou basse pression, traitement anti-mousse, hydrofuge de protection.", "entretien-demoussage", "Entretien et démoussage"),
+ ("solin", "Solin de cheminée décollé", "Cheminée", "Le zinc s'est décollé au pied de la souche : l'eau s'infiltre derrière la cheminée et ruisselle sur l'isolant.", "Abergement en zinc neuf soudé sur place, étanchéité rétablie autour de la souche.", "zinguerie", "Zinguerie et gouttières"),
+ ("velux", "Fenêtre de toit fatiguée", "Combles", "Joint usé, vitrage embué : la fenêtre laisse passer le froid, parfois l'eau, et les combles deviennent inconfortables.", "Remplacement par une fenêtre de toit neuve avec son raccord d'étanchéité, sans toucher aux finitions intérieures.", "pose-velux", "Pose de Velux"),
+ ("teinte", "Tuiles ternes et poreuses", "Versant sud", "Les tuiles béton se décolorent et boivent l'eau : la couverture vieillit deux fois plus vite.", "Nettoyage, traitement, puis résine pigmentée en deux couches : teinte et protection retrouvées.", "peinture-toiture", "Peinture de toiture"),
+]
 
 # ----------------------------------------------------------------------------- utilitaires
 def href(path):
@@ -145,7 +168,7 @@ def slugify(s):
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 GLYPH = '<svg class="brand-glyph" viewBox="0 0 48 44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 31 24 9l20 22"/><path d="M33 12.5V20M30.5 12.5h5"/></svg>'
-FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23cfcbc6'/%3E%3Cpath d='M12 41 32 19l20 22M41 22.5V30M38.5 22.5h5' fill='none' stroke='%23141413' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230F1C2A'/%3E%3Cpath d='M12 41 32 19l20 22M41 22.5V30M38.5 22.5h5' fill='none' stroke='%23C9A47A' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
 
 def brand():
     return f'<a class="brand" href="/" aria-label="{N}, accueil">{GLYPH}<span class="brand-text"><span>Général</span><span>Couverture</span></span></a>'
@@ -156,7 +179,7 @@ def header(section="Accueil"):
   {brand()}
   <div class="nav-center" aria-hidden="true"><span class="label" id="nav-section">{section}</span><div class="nav-line"><span id="nav-fill"></span></div></div>
   <div class="nav-right">
-    <a href="/#services">Services</a><a href="/#realisations">Réalisations</a><a href="{href("zones-intervention.html")}">Zone</a><a href="{href("contact.html")}">Contact</a><a href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a>
+    <a href="/#services">Services</a><a href="/#realisations">Réalisations</a><a href="{href("zones-intervention.html")}">Zone</a><a href="{href("contact.html")}">Contact</a><a class="nav-tel" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a>
     <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="menu"><span></span></button>
   </div>
 </header>
@@ -171,7 +194,7 @@ def header(section="Accueil"):
 
 def footer():
     srv = "".join(f'<li><a href="{href(s["slug"] + ".html")}">{s["title"]}</a></li>' for s in SERVICES)
-    return f'''<footer class="footer" data-nav="Contact">
+    return f'''<footer class="footer navy" data-nav="Contact">
   <div class="footer-grid">
     <div>{brand()}<p class="footer-desc">Couvreur certifié RGE à Angers. Rénovation, toiture neuve, entretien, zinguerie, fenêtres de toit et peinture de toiture dans tout le Maine-et-Loire.</p></div>
     <div><h4 class="label">Services</h4><ul>{srv}</ul></div>
@@ -192,7 +215,7 @@ def layout(title, desc, body, path, extra_head="", scripts="", og_image="images/
 <title>{title}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{canonical}">
-<meta name="theme-color" content="#cfcbc6">
+<meta name="theme-color" content="#0F1C2A">
 <link rel="icon" href="{FAVICON}">
 <meta property="og:type" content="website"><meta property="og:locale" content="fr_FR"><meta property="og:site_name" content="{N}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:url" content="{canonical}"><meta property="og:image" content="{SITE["url"]}/{og_image}">
@@ -220,22 +243,58 @@ ORG = {"@context": "https://schema.org", "@type": "RoofingContractor", "@id": SI
   "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5.0", "reviewCount": str(len(REVIEWS))},
   "hasOfferCatalog": {"@type": "OfferCatalog", "name": "Services de couverture", "itemListElement": [{"@type": "Offer", "itemOffered": {"@type": "Service", "name": s["title"], "url": SITE["url"] + href(s["slug"] + ".html")}} for s in SERVICES]}}
 
+# ----------------------------------------------------------------------------- illustrations animées de la méthode (SVG inline)
+ILLU = {
+"appel": '''<svg class="illu illu-phone" viewBox="0 0 200 200" aria-hidden="true">
+<g class="ph-body"><rect class="f" x="70" y="30" width="60" height="120" rx="12"/><rect class="soft" x="78" y="42" width="44" height="88" rx="4"/><circle class="g" cx="100" cy="140" r="3"/>
+<g class="ph-call"><rect class="f gs" x="84" y="52" width="32" height="14" rx="7"/><circle class="g" cx="92" cy="59" r="3"/><path d="M99 59h11"/></g>
+<path d="M86 84h28M86 94h20M86 104h24"/></g>
+<path class="ph-wave w1 gs" d="M140 76a24 24 0 0 1 0 48"/><path class="ph-wave w2 gs" d="M152 64a40 40 0 0 1 0 72"/>
+<path class="ph-wave w1 gs" d="M60 76a24 24 0 0 0 0 48"/><path class="ph-wave w2 gs" d="M48 64a40 40 0 0 0 0 72"/>
+<text class="illu-text" x="100" y="180" text-anchor="middle">06 21 32 37 89</text>
+</svg>''',
+"visite": '''<svg class="illu illu-diag" viewBox="0 0 200 200" aria-hidden="true">
+<rect class="soft" x="124" y="56" width="12" height="26"/><path class="f" d="M44 152V96l56-44 56 44v56z"/><path d="M30 104l70-56 70 56"/><path d="M124 58V82M136 58V80M44 152h112"/>
+<rect class="soft" x="90" y="118" width="20" height="34"/><rect x="60" y="112" width="16" height="16"/><rect x="124" y="112" width="16" height="16"/>
+<g transform="translate(66 86)"><g class="dg-check" style="--d:0.4s"><circle class="g" r="8"/><path class="navy" d="M-3.5 0l2.5 2.5 5-5"/></g></g>
+<g transform="translate(100 66)"><g class="dg-check" style="--d:1.9s"><circle class="g" r="8"/><path class="navy" d="M-3.5 0l2.5 2.5 5-5"/></g></g>
+<g transform="translate(140 92)"><g class="dg-check" style="--d:3.4s"><circle class="g" r="8"/><path class="navy" d="M-3.5 0l2.5 2.5 5-5"/></g></g>
+<g class="dg-lens"><circle class="f gs thick" cx="100" cy="80" r="17" style="fill:rgba(201,164,122,.14)"/><path class="gs thick" d="M112 92l17 17"/></g>
+</svg>''',
+"devis": '''<svg class="illu illu-devis" viewBox="0 0 200 200" aria-hidden="true">
+<path class="f" d="M56 28h66l22 22v122H56z"/><path d="M122 28v22h22"/>
+<path class="dv-line" style="--d:0.2s" d="M72 70h48"/><path class="dv-line" style="--d:0.6s" d="M72 86h56"/><path class="dv-line" style="--d:1s" d="M72 102h40"/><path class="dv-line" style="--d:1.4s" d="M72 118h52"/>
+<path class="dv-line gs thick" style="--d:1.9s" d="M72 142h56"/>
+<g class="dv-stamp"><rect class="gs thick" x="94" y="150" width="60" height="22" rx="3" transform="rotate(-10 124 161)" style="fill:rgba(201,164,122,.14)"/><text class="illu-text" x="124" y="165" text-anchor="middle" transform="rotate(-10 124 161)" style="fill:var(--gold-dark)">GRATUIT</text></g>
+</svg>''',
+"travaux": '''<svg class="illu illu-travaux" viewBox="0 0 200 200" aria-hidden="true">
+<path d="M24 136h152"/><g transform="skewX(-34)"><rect class="f" x="110" y="58" width="96" height="70"/>
+<rect class="tw-t soft" style="--d:0s" x="114" y="62" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:0.2s" x="137" y="62" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:0.4s" x="160" y="62" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:0.6s" x="183" y="62" width="20" height="18" rx="2"/>
+<rect class="tw-t soft" style="--d:0.8s" x="114" y="84" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:1s" x="137" y="84" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:1.2s" x="160" y="84" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:1.4s" x="183" y="84" width="20" height="18" rx="2"/>
+<rect class="tw-t soft" style="--d:1.6s" x="114" y="106" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:1.8s" x="137" y="106" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:2s" x="160" y="106" width="20" height="18" rx="2"/><rect class="tw-t soft" style="--d:2.2s" x="183" y="106" width="20" height="18" rx="2"/></g>
+<path class="gs thick" d="M62 58h92"/>
+<g transform="translate(150 152)"><g class="tw-shield"><path class="g" d="M0-24l22 8v15c0 13-10 22-22 26-12-4-22-13-22-26v-15z"/><text class="illu-text on-gold" y="4" text-anchor="middle">10 ANS</text></g></g>
+</svg>''',
+}
+
 # ----------------------------------------------------------------------------- blocs
 def faq_block(items): return "".join(f'<details{" open" if i == 0 else ""}><summary>{q}</summary><p>{a}</p></details>' for i, (q, a) in enumerate(items))
 
-def ring_section():
-    cards = "".join(f'<figure class="ring-card" data-title="{s["ring_title"]}" data-label="{s["ring_label"]}" data-href="{href(s["slug"] + ".html")}"><img src="/{s["img"]}" alt="{esc(s["title"])}" loading="lazy" draggable="false"><span class="ring-tag label">0{i+1}</span></figure>' for i, s in enumerate(SERVICES))
-    nav = ""
-    for i in range(len(SERVICES)):
-        cls = ' class="is-active"' if i == 0 else ""
-        nav += f'<button type="button"{cls}>0{i+1}</button>'
-    return f'''<section class="ring-section" id="services" data-nav="Services">
-  <div class="ring-head"><span class="label">Nos services — six métiers, une seule exigence</span><span class="label muted">Glissez les cartes ou choisissez un numéro</span></div>
-  <div class="ring-wrap" aria-label="Carrousel des services"><div class="ring">{cards}</div></div>
-  <div class="ring-foot">
-    <div class="ring-nav" role="tablist">{nav}</div>
-    <div class="ring-title"><span class="label" id="ring-label">{SERVICES[0]["ring_label"]}</span><h2 id="ring-title">{SERVICES[0]["ring_title"]}</h2><a class="link-u" id="ring-link" href="{href(SERVICES[0]["slug"] + ".html")}">Voir le service</a></div>
-    <div class="ring-arrows"><button type="button" id="ring-prev" aria-label="Précédent">←</button><button type="button" id="ring-next" aria-label="Suivant">→</button></div>
+def deck_section():
+    cards = "".join(f'<figure class="deck-card" data-title="{s["ring_title"]}" data-desc="{esc(s["short"])}" data-href="{href(s["slug"] + ".html")}"><img src="/{s["img"]}" alt="{esc(s["title"])}" loading="lazy" draggable="false"><span class="deck-tag label">0{i+1} / 0{len(SERVICES)}</span><figcaption>{s["title"]}<small>{s["short"]}</small></figcaption></figure>' for i, s in enumerate(SERVICES))
+    dots = "".join(f'<button type="button" aria-label="Service {i+1}"{" class=is-active" if i == 0 else ""}>0{i+1}</button>' for i in range(len(SERVICES)))
+    return f'''<section class="deck-section navy" id="services" data-nav="Services" style="--n:{len(SERVICES)}">
+  <div class="deck-stage">
+    <div class="deck-text">
+      <span class="label gold">Nos services — six métiers, une seule exigence</span>
+      <div class="deck-index"><span id="deck-cur">01</span><span class="sep">/</span><span class="tot">0{len(SERVICES)}</span></div>
+      <h2 id="deck-title">{SERVICES[0]["ring_title"]}</h2>
+      <p id="deck-desc">{SERVICES[0]["short"]}</p>
+      <a class="link-u" id="deck-link" href="{href(SERVICES[0]["slug"] + ".html")}">Voir le service</a>
+      <div class="deck-dots">{dots}</div>
+    </div>
+    <div class="deck-wrap"><div class="deck">{cards}</div></div>
+    <div class="deck-hint"><span class="label muted">Faites défiler</span><i></i></div>
   </div>
 </section>'''
 
@@ -249,8 +308,8 @@ def strip_section():
     cards = "".join(ba_card(*b) for b in BA)
     for src, title, sub, cap in PHOTOS:
         cards += f'<figure class="strip-card photo" data-title="{title}" data-sub="{sub}"><div class="photo-frame"><img src="/{src}" alt="{esc(cap)}" loading="lazy" draggable="false"></div><figcaption>{cap}<span>{sub}</span></figcaption></figure>'
-    return f'''<section class="section strip-section" id="realisations" data-nav="Réalisations">
-  <div class="strip-head"><div><span class="label">Réalisations — avant / après</span></div><p class="label muted">Déplacez le curseur sur chaque photo</p></div>
+    return f'''<section class="section cream strip-section" id="realisations" data-nav="Réalisations">
+  <div class="strip-head"><div><span class="label gold">Réalisations — avant / après</span></div><p class="label muted">Déplacez le curseur sur chaque photo</p></div>
   <div class="strip">{cards}</div>
   <div class="strip-foot"><div class="strip-title"><span class="h-light label" id="strip-sub">{BA[0][4]}</span><h2 id="strip-title">{BA[0][3]}</h2></div><div class="ring-arrows"><button type="button" id="strip-prev" aria-label="Précédent">←</button><button type="button" id="strip-next" aria-label="Suivant">→</button></div></div>
 </section>'''
@@ -266,7 +325,7 @@ def services_rows(exclude=None):
 def cta_band(title="Un projet de toiture ?<br>Parlons-en.", text="Devis gratuit et détaillé après visite sur site. Le prix annoncé est le prix payé."):
     return f'''<section class="section cta-band" data-nav="Contact"><div class="section-inner">
   <div class="reveal"><h2>{title}</h2><p>{text}</p></div>
-  <div class="reveal" style="--i:1"><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><p>{SITE["hours"]} · Urgence fuite : appelez-nous.</p><div class="btn-row"><a class="btn btn-dark" href="{href("contact.html")}">Demander un devis</a><a class="btn btn-outline" href="{href("zones-intervention.html")}">Zone d'intervention</a></div></div>
+  <div class="reveal" style="--i:1"><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><p>{SITE["hours"]} · Urgence fuite : appelez-nous.</p><div class="btn-row"><a class="btn btn-gold" href="{href("contact.html")}">Demander un devis</a><a class="btn btn-outline" href="{href("zones-intervention.html")}">Zone d'intervention</a></div></div>
 </div></section>'''
 
 def form_block():
@@ -282,95 +341,103 @@ def form_block():
     <div class="field full"><label for="f-msg">Votre projet</label><textarea id="f-msg" name="message" placeholder="Décrivez votre toiture et le problème rencontré."></textarea></div>
   </div>
   <p class="form-note">Réponse sous 24 h ouvrées. Vos coordonnées servent uniquement à vous recontacter.</p>
-  <button class="btn btn-dark btn-lg" type="submit" style="margin-top:1.4em">Envoyer ma demande</button>
+  <button class="btn btn-gold btn-lg" type="submit" style="margin-top:1.4em">Envoyer ma demande</button>
   <p class="form-status" role="status"></p>
 </form>'''
 
-# ----------------------------------------------------------------------------- accueil
+# ----------------------------------------------------------------------------- accueil : hero + atelier 3D
+def atelier_panel():
+    tabs = "".join(f'<button type="button" role="tab" data-mode="{m}" aria-selected="{"true" if i == 0 else "false"}"{" class=is-active" if i == 0 else ""}><span>0{i+1}</span><b>{t}</b></button>' for i, (m, t) in enumerate([("matieres", "Matières"), ("coupe", "Coupe"), ("diagnostic", "Diagnostic"), ("entretien", "Entretien")]))
+    chips = "".join(f'<button type="button" class="chip{" is-active" if i == 0 else ""}" data-mat="{k}">{t}</button>' for i, (k, t, _, _, _) in enumerate(MATS))
+    infos = ""
+    for i, (k, t, sub, desc, facts) in enumerate(MATS):
+        dl = "".join(f'<div><dt>{a}</dt><dd>{b}</dd></div>' for a, b in facts)
+        infos += f'<div class="mat-info" data-mat-info="{k}"{"" if i == 0 else " hidden"}><span class="label muted">{sub}</span><h3>{t}</h3><p>{desc}</p><dl class="facts">{dl}</dl></div>'
+    layers = "".join(f'<button type="button" data-layer="{k}"><i>{i+1}</i>{t}</button>' for i, (k, t, _) in enumerate(LAYERS))
+    linfos = '<div data-layer-info="none"><p>Touchez une couche pour la mettre en avant et comprendre son rôle.</p></div>'
+    linfos += "".join(f'<div data-layer-info="{k}" hidden><h3>{i+1} · {t}</h3><p>{d}</p></div>' for i, (k, t, d) in enumerate(LAYERS))
+    hsb = "".join(f'<button type="button" data-hs="{k}"{" class=is-active" if i == 0 else ""}><b>0{i+1}</b><span>{t}</span></button>' for i, (k, t, *_r) in enumerate(HOTSPOTS))
+    hsi = ""
+    for i, (k, t, where, sym, fix, page, lbl) in enumerate(HOTSPOTS):
+        hsi += f'<div class="hs-info" data-hs-info="{k}"{"" if i == 0 else " hidden"}><span class="label muted">{where}</span><h3>{t}</h3><p><b>Le symptôme.</b> {sym}</p><p><b>Notre intervention.</b> {fix}</p><a class="link-u" href="{href(page + ".html")}">{lbl}</a></div>'
+    return f'''<div class="atelier" id="atelier" aria-label="L'atelier 3D">
+      <div class="atelier-head"><div><span class="label gold">L'atelier 3D</span><strong>Comprenez votre toiture</strong></div><span class="label muted hint">Glissez pour pivoter</span></div>
+      <div class="atelier-tabs" role="tablist">{tabs}</div>
+      <div class="atelier-body">
+        <div class="atelier-pane" data-pane="matieres"><p class="pane-intro">Comparez quatre couvertures sur la même maison, pente de 35°.</p><div class="chips">{chips}</div>{infos}<p class="note">Maquette illustrative : le matériau, la pente et la pose se valident sur place, avec nous.</p></div>
+        <div class="atelier-pane" data-pane="coupe" hidden><p class="pane-intro">Une toiture, c'est cinq couches. Écartez-les et touchez chacune.</p><div class="slider-head"><span class="label">Vue éclatée</span></div><input class="slider" id="explode" type="range" min="0" max="100" value="65" aria-label="Écarter les couches"><div class="layers">{layers}</div>{linfos}<button type="button" class="chip" id="replay">Rejouer la pose ↻</button></div>
+        <div class="atelier-pane" data-pane="diagnostic" hidden><p class="pane-intro">Six désordres fréquents sur une maison angevine. Touchez un point de la maquette ou un symptôme.</p><div class="hs-list">{hsb}</div>{hsi}<button type="button" class="chip hs-after" id="hs-after" data-before="Voir après intervention" data-after="Revoir le désordre">Voir après intervention</button></div>
+        <div class="atelier-pane" data-pane="entretien" hidden><p class="pane-intro">Faites avancer le nettoyage du versant nord, celui qu'on ne voit pas depuis la rue.</p><div class="slider-head"><span class="label">Nettoyage</span><span class="label gold" id="clean-val">0 %</span></div><input class="slider" id="clean" type="range" min="0" max="100" value="0" aria-label="Avancement du nettoyage"><div class="slider-legend"><span>Encrassé</span><span>Nettoyé + hydrofuge</span></div><p>Démoussage manuel ou basse pression, traitement curatif, puis hydrofuge : la couverture retrouve sa teinte et gagne des années de vie. À renouveler tous les quatre à six ans.</p><a class="link-u" href="{href("entretien-demoussage.html")}">Entretien et démoussage</a></div>
+      </div>
+    </div>'''
+
 def build_index():
-    labels = '''<div class="lbl" data-layer="tuiles"><span class="dot"></span><span class="tag"><b>Tuiles</b>terre cuite, ardoise ou zinc</span></div>
-<div class="lbl" data-layer="liteaux"><span class="dot"></span><span class="tag"><b>Liteaux</b>le support des tuiles</span></div>
-<div class="lbl" data-layer="ecran"><span class="dot"></span><span class="tag"><b>Écran sous-toiture</b>la barrière contre l'eau</span></div>
-<div class="lbl" data-layer="isolation"><span class="dot"></span><span class="tag"><b>Isolation</b>confort et économies d'énergie</span></div>
-<div class="lbl" data-layer="chevrons"><span class="dot"></span><span class="tag"><b>Chevrons</b>la charpente qui porte tout</span></div>
-<div class="lbl leak" data-step="0"><span class="dot"></span><span class="tag"><b>1 · Le symptôme</b>une auréole au plafond</span></div>
-<div class="lbl leak" data-step="1"><span class="dot"></span><span class="tag"><b>2 · La cause</b>le solin décollé derrière la cheminée</span></div>
-<div class="lbl leak" data-step="2"><span class="dot"></span><span class="tag"><b>3 · La réparation</b>abergement zinc neuf, étanchéité rétablie</span></div>'''
+    labels = "".join(f'<div class="lbl" data-layer="{k}"><span class="dot"></span><span class="tag"><b>{i+1} · {t}</b></span></div>' for i, (k, t, _) in enumerate(LAYERS))
+    hots = "".join(f'<button type="button" class="hs" data-hs="{k}" aria-label="{esc(t)}"><span class="dot">{i+1}</span><span class="tag">{t}</span></button>' for i, (k, t, *_r) in enumerate(HOTSPOTS))
     experience = f'''<section class="experience" id="experience" aria-label="Votre toiture en 3D" data-nav="Accueil">
-  <div class="stage" id="stage" data-light="jour">
+  <div class="stage" id="stage" data-mode="matieres">
+    <div class="stage-grid" aria-hidden="true"></div>
     <canvas id="scene" aria-hidden="true"></canvas>
-    <div class="labels" id="labels" aria-hidden="true">{labels}</div>
-    <div class="stage-ui"><span class="label" id="stage-counter">01 / 06</span><span class="label muted stage-hint">Glissez pour pivoter</span></div>
+    <div class="labels" id="labels">{labels}{hots}</div>
+    <div class="hero-ui">
+      <span class="label gold">Couvreur à Angers — Maine-et-Loire</span>
+      <h1>Votre toiture, <span class="h-light">entre de bonnes mains.</span></h1>
+      <p class="lead"><span class="lead-long">Rénovation, toiture neuve, recherche de fuite, zinguerie : {N} entretient et refait les toits d'Angers depuis vingt ans. Certifié RGE, garantie décennale, devis gratuit.</span><span class="lead-short">Rénovation, toiture neuve, fuite, zinguerie : couvreur certifié RGE à Angers, devis gratuit.</span></p>
+      <div class="btn-row"><a class="btn btn-gold" href="{href("contact.html")}">Demander un devis</a><a class="btn btn-outline" id="explore" href="#atelier">Explorer la maquette 3D</a></div>
+      <ul class="hero-facts"><li><strong>20 ans</strong>d'expérience</li><li><strong>500</strong>chantiers</li><li><strong>RGE</strong>certifié</li><li><strong>5,0</strong>sur Google</li></ul>
+    </div>
+    {atelier_panel()}
+    <div class="scroll-hint"><span class="label muted">Faites défiler pour entrer dans l'atelier</span><span></span></div>
+    <div class="stage-ui"><span class="label muted stage-hint">Maquette 3D interactive · glissez pour pivoter</span></div>
     <div class="stage-loading" id="loader"><div><span></span></div></div>
   </div>
-  <div class="steps">
-    <article class="step step-hero" data-ch="0"><div class="step-inner">
-      <span class="label step-num">Couvreur à Angers — Maine-et-Loire</span>
-      <h1>Votre toiture, <span class="h-light">entre de bonnes mains.</span></h1>
-      <p class="lead">Rénovation, toiture neuve, recherche de fuite, zinguerie : {N} entretient et refait les toits d'Angers depuis vingt ans. Certifié RGE, garantie décennale, devis gratuit.</p>
-      <div class="btn-row"><a class="btn btn-dark" href="{href("contact.html")}">Demander un devis</a><a class="tel-link" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a></div>
-      <ul class="hero-facts"><li><strong>20 ans</strong>d'expérience</li><li><strong>500</strong>chantiers</li><li><strong>RGE</strong>certifié</li><li><strong>5,0</strong>sur Google</li></ul>
-    </div></article>
-    <article class="step" data-ch="1"><div class="step-inner"><span class="label step-num">01 — La charpente</span><h2>Tout commence par une charpente saine.</h2><p>Sablières, entraits, arbalétriers, pannes, chevrons : chaque pièce de bois a un rôle. Avant de couvrir, nous vérifions la structure, nous traitons ou nous remplaçons ce qui doit l'être.</p></div></article>
-    <article class="step" data-ch="2"><div class="step-inner"><span class="label step-num">02 — La couverture</span><h2>Les tuiles, rangée après rangée.</h2><p>Écran sous-toiture, liteaux, puis les tuiles posées de l'égout jusqu'au faîtage. Une pose dans les règles de l'art, pour une toiture qui dure des décennies.</p><a class="link-u step-cta" href="{href("pose-toiture-neuve.html")}">Pose de toiture neuve</a></div></article>
-    <article class="step" data-ch="3"><div class="step-inner"><span class="label step-num">03 — Couche par couche</span><h2>Ce qui vous protège vraiment.</h2><p class="mobile-hide">Une toiture, ce n'est pas que des tuiles. Charpente, isolation, écran sous-toiture, liteaux, couverture : nous intervenons sur chaque couche, de la rénovation complète à la simple réparation.</p><ol class="layer-legend"><li>Tuiles</li><li>Liteaux</li><li>Écran sous-toiture</li><li>Isolation</li><li>Chevrons</li></ol></div></article>
-    <article class="step" data-ch="4"><div class="step-inner"><span class="label step-num">04 — Une fuite ?</span><h2>Suivez la goutte, du symptôme à la réparation.</h2>
-      <div class="controls"><div class="choice-row" role="tablist"><button class="chip-btn step-btn is-active" data-step="0" role="tab">Le symptôme</button><button class="chip-btn step-btn" data-step="1" role="tab">La cause</button><button class="chip-btn step-btn" data-step="2" role="tab">La réparation</button></div></div>
-      <p class="step-text" data-step-text="0">Une auréole au plafond après la pluie : l'eau est entrée quelque part au-dessus. Nous intervenons rapidement pour diagnostiquer et sécuriser.</p>
-      <p class="step-text" data-step-text="1" hidden>Derrière la cheminée, le solin s'est décollé. L'eau s'infiltre sous les tuiles et ruisselle sur l'isolant jusqu'au plafond.</p>
-      <p class="step-text" data-step-text="2" hidden>Nous posons un abergement en zinc neuf et reprenons l'étanchéité. Intervention en urgence à Angers et dans le Maine-et-Loire.</p>
-      <a class="btn btn-outline btn-sm step-cta" href="tel:{SITE["tel_link"]}">Une fuite ? Appelez-nous</a></div></article>
-    <article class="step" data-ch="5"><div class="step-inner"><span class="label step-num">05 — Matières et lumières</span><h2>Chaque toiture a son caractère.</h2><p class="mobile-hide">Tuile terre cuite, tuile vieillie ou ardoise d'Anjou : comparez les matériaux et projetez-vous, à toute heure de la journée.</p>
-      <div class="controls"><span class="label choice-label">Couverture</span><div class="choice-row"><button class="chip-btn is-active" data-mat="tuile">Tuile terre cuite</button><button class="chip-btn" data-mat="vieillie">Tuile vieillie</button><button class="chip-btn" data-mat="ardoise">Ardoise</button></div><span class="label choice-label">Lumière</span><div class="choice-row"><button class="chip-btn is-active" data-light="jour">Jour</button><button class="chip-btn" data-light="soir">Coucher de soleil</button><button class="chip-btn" data-light="nuit">Nuit</button></div></div>
-      <div class="btn-row step-cta"><a class="btn btn-dark" href="{href("contact.html")}">Demander un devis gratuit</a></div></div></article>
-  </div>
 </section>'''
-    method = '''<section class="section" data-nav="Méthode"><div class="wrap">
-  <div class="section-head reveal"><div><span class="label">La méthode</span><h2>Simple, clair,<br><span class="h-light">sans surprise.</span></h2></div></div>
-  <ol class="method">
-    <li class="reveal" style="--i:0"><span class="num">01</span><h3>Vous appelez</h3><p>Décrivez votre toiture et le problème. Pour une fuite, nous organisons une intervention rapide.</p></li>
-    <li class="reveal" style="--i:1"><span class="num">02</span><h3>Visite et diagnostic</h3><p>Nous montons sur le toit, nous contrôlons couverture, zinguerie et charpente, photos à l'appui.</p></li>
-    <li class="reveal" style="--i:2"><span class="num">03</span><h3>Devis détaillé</h3><p>Gratuit, chiffré poste par poste. Le prix indiqué est celui que vous payez.</p></li>
-    <li class="reveal" style="--i:3"><span class="num">04</span><h3>Travaux et garantie</h3><p>Chantier propre, maison hors d'eau chaque soir, garantie décennale sur nos réalisations.</p></li>
-  </ol>
+    steps = [("appel", "Vous appelez", "Décrivez votre toiture et le problème. Pour une fuite, nous organisons une intervention rapide."),
+             ("visite", "Visite et diagnostic", "Nous montons sur le toit, nous contrôlons couverture, zinguerie et charpente, photos à l'appui."),
+             ("devis", "Devis détaillé", "Gratuit, chiffré poste par poste. Le prix indiqué est celui que vous payez."),
+             ("travaux", "Travaux et garantie", "Chantier propre, maison hors d'eau chaque soir, garantie décennale sur nos réalisations.")]
+    items = "".join(f'<li class="reveal" style="--i:{i}">{ILLU[k]}<span class="num">Étape 0{i+1}</span><h3>{t}</h3><p>{d}</p></li>' for i, (k, t, d) in enumerate(steps))
+    method = f'''<section class="section cream" id="methode" data-nav="Méthode"><div class="wrap">
+  <div class="section-head reveal"><div><span class="label gold">La méthode</span><h2>Simple, clair,<br><span class="h-light">sans surprise.</span></h2></div><p>Quatre étapes, toujours les mêmes, du premier appel à la fin du chantier.</p></div>
+  <ol class="method">{items}</ol>
 </div></section>'''
-    about = f'''<section class="section" id="apropos" data-nav="L'entreprise"><div class="wrap about-grid">
+    about = f'''<section class="section navy" id="apropos" data-nav="L'entreprise"><div class="wrap about-grid">
   <div class="about-media reveal"><img src="/images/apropos.webp" alt="Couvreur de Général Couverture sur une toiture en ardoise à Angers" loading="lazy" width="750" height="938"></div>
-  <div class="about-text reveal" style="--i:1"><span class="label">L'entreprise</span><h2 style="margin-top:1.2em">Une entreprise angevine,<br><span class="h-light">un couvreur passionné.</span></h2>
+  <div class="about-text reveal" style="--i:1"><span class="label gold">L'entreprise</span><h2 style="margin-top:1.2em">Une entreprise angevine,<br><span class="h-light">un couvreur passionné.</span></h2>
     <p class="about-quote">De la tuile à l'ardoise en passant par le zinc, chaque chantier est traité avec le même niveau d'exigence.</p>
     <p>{N} est une entreprise angevine fondée par un couvreur passionné, fort de plus de quinze ans d'expérience dans la pose et la rénovation de toitures. Basés aux Garennes-sur-Loire, à dix minutes d'Angers, nous intervenons sur l'ensemble du Maine-et-Loire pour les particuliers comme pour les professionnels.</p>
     <p>Certifiés RGE, nous travaillons avec des matériaux de qualité, dans le respect des délais convenus. La garantie décennale couvre l'ensemble de nos réalisations.</p>
     <ul class="badges"><li>Certifié RGE</li><li>Garantie décennale</li><li>Devis gratuit</li></ul></div>
 </div></section>'''
     revs = "".join(f'<blockquote class="reveal" style="--i:{i}"><p>« {t} »</p><footer>{n}</footer></blockquote>' for i, (n, t) in enumerate(REVIEWS))
-    reviews = f'''<section class="section" id="avis" data-nav="Avis"><div class="wrap"><div class="section-head reveal"><div><span class="label">Avis clients</span><h2>Ce que disent<br><span class="h-light">nos clients.</span></h2></div><p class="google-badge"><span class="stars">★★★★★</span> 5,0 sur Google · {len(REVIEWS)} avis</p></div><div class="reviews">{revs}</div></div></section>'''
+    reviews = f'''<section class="section navy" id="avis" data-nav="Avis"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Avis clients</span><h2>Ce que disent<br><span class="h-light">nos clients.</span></h2></div><p class="google-badge"><span class="stars">★★★★★</span> 5,0 sur Google · {len(REVIEWS)} avis</p></div><div class="reviews">{revs}</div></div></section>'''
     towns = "".join(f'<li><a href="{href("zones-intervention.html#" + slugify(z[0]))}">{z[0]}</a></li>' for z in ZONES)
-    zones = f'''<section class="section" id="zone" data-nav="Zone"><div class="wrap zone-grid"><div class="reveal"><span class="label">Zone d'intervention</span><h2 style="margin-top:1.2em">Angers et tout<br><span class="h-light">le Maine-et-Loire.</span></h2><p class="lead">Basés aux Garennes-sur-Loire, nous intervenons dans toute l'agglomération et le département, en urgence comme pour les chantiers programmés.</p><a class="link-u" href="{href("zones-intervention.html")}">Toutes les communes</a></div><ul class="towns reveal" style="--i:1">{towns}</ul></div></section>'''
-    faq = f'''<section class="section" id="faq" data-nav="Questions"><div class="wrap"><div class="section-head reveal"><div><span class="label">Questions fréquentes</span><h2>Vos questions,<br><span class="h-light">nos réponses.</span></h2></div></div><div class="faq reveal" style="--i:1">{faq_block(FAQ_HOME)}</div></div></section>'''
-    contact = f'''<section class="section" id="contact" data-nav="Contact"><div class="wrap contact-grid"><div class="reveal"><span class="label">Contact</span><h2 style="margin-top:1.2em">Parlons de<br><span class="h-light">votre toiture.</span></h2><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><ul class="info-list"><li><strong>Horaires</strong><span>{SITE["hours"]}<br>Urgence fuite : appelez, nous nous organisons.</span></li><li><strong>Secteur</strong><span>Angers, son agglomération et tout le Maine-et-Loire</span></li><li><strong>Devis</strong><span>Gratuit, après visite sur site, chiffré poste par poste</span></li><li><strong>Garanties</strong><span>Certifié RGE · Garantie décennale</span></li></ul></div>{form_block()}</div></section>'''
+    zones = f'''<section class="section cream" id="zone" data-nav="Zone"><div class="wrap zone-grid"><div class="reveal"><span class="label gold">Zone d'intervention</span><h2 style="margin-top:1.2em">Angers et tout<br><span class="h-light">le Maine-et-Loire.</span></h2><p class="lead">Basés aux Garennes-sur-Loire, nous intervenons dans toute l'agglomération et le département, en urgence comme pour les chantiers programmés.</p><a class="link-u" href="{href("zones-intervention.html")}">Toutes les communes</a></div><ul class="towns reveal" style="--i:1">{towns}</ul></div></section>'''
+    faq = f'''<section class="section navy" id="faq" data-nav="Questions"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Questions fréquentes</span><h2>Vos questions,<br><span class="h-light">nos réponses.</span></h2></div></div><div class="faq reveal" style="--i:1">{faq_block(FAQ_HOME)}</div></div></section>'''
+    contact = f'''<section class="section cream" id="contact" data-nav="Contact"><div class="wrap contact-grid"><div class="reveal"><span class="label gold">Contact</span><h2 style="margin-top:1.2em">Parlons de<br><span class="h-light">votre toiture.</span></h2><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><ul class="info-list"><li><strong>Horaires</strong><span>{SITE["hours"]}<br>Urgence fuite : appelez, nous nous organisons.</span></li><li><strong>Secteur</strong><span>Angers, son agglomération et tout le Maine-et-Loire</span></li><li><strong>Devis</strong><span>Gratuit, après visite sur site, chiffré poste par poste</span></li><li><strong>Garanties</strong><span>Certifié RGE · Garantie décennale</span></li></ul></div>{form_block()}</div></section>'''
     faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQ_HOME]}
-    body = experience + ring_section() + method + about + strip_section() + reviews + zones + faq + contact
+    body = experience + deck_section() + method + about + strip_section() + reviews + zones + faq + contact
     extra = jsonld(ORG) + "\n" + jsonld(faq_ld) + '\n<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>'
     return layout("Couvreur à Angers — Général Couverture | Rénovation, toiture neuve, zinguerie", "Couvreur certifié RGE à Angers et dans le Maine-et-Loire : rénovation et réparation de toiture, toiture neuve, démoussage, zinguerie, Velux, peinture de toiture. Devis gratuit au 06 21 32 37 89.", body, "index.html", extra, f'<script type="module" src="/js/app.js?v={V}"></script>')
 
 # ----------------------------------------------------------------------------- pages internes
 def page_top(crumbs, label, h1, lead, img, nav):
-    return f'''<section class="page-top" data-nav="{nav}"><div><nav class="crumbs label muted" aria-label="Fil d'Ariane">{crumbs}</nav><span class="label">{label}</span><h1 style="margin-top:0.9em">{h1}</h1></div><p class="lead">{lead}</p></section>
+    return f'''<section class="page-top" data-nav="{nav}"><div><nav class="crumbs label muted" aria-label="Fil d'Ariane">{crumbs}</nav><span class="label gold">{label}</span><h1 style="margin-top:0.9em">{h1}</h1></div><p class="lead">{lead}</p></section>
 <div class="page-visual reveal"><img src="/{img}" alt="" aria-hidden="true" width="1600" height="686"></div>'''
 
 def build_service(s):
     points = "".join(f"<li>{p}</li>" for p in s["points"])
     crumbs = f'<a href="/">Accueil</a><span>/</span><a href="/#services">Services</a><span>/</span><span>{s["nav"]}</span>'
     body = page_top(crumbs, "Couvreur à Angers — Maine-et-Loire", s["h1"], s["intro"], s["img"], s["nav"]) + f'''
-<section class="section"><div class="wrap service-grid">
+<section class="section cream"><div class="wrap service-grid">
   <div class="service-main reveal"><p>{s["p1"]}</p><h2>Ce que nous faisons</h2><ul class="checklist">{points}</ul><p>{s["p2"]}</p><h2>Questions fréquentes</h2><div class="faq">{faq_block(s["faq"])}</div></div>
-  <aside class="reveal" style="--i:1"><div class="aside-card"><h3>Devis gratuit</h3><p>Visite sur site, diagnostic et devis chiffré poste par poste, sans engagement.</p><a class="btn btn-dark" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><a class="btn btn-outline" href="{href("contact.html")}" style="margin-top:0.7em">Écrire via le formulaire</a><ul><li>Certifié RGE</li><li>Garantie décennale</li><li>{SITE["hours"]}</li><li>Angers et Maine-et-Loire</li></ul></div></aside>
+  <aside class="reveal" style="--i:1"><div class="aside-card"><h3>Devis gratuit</h3><p>Visite sur site, diagnostic et devis chiffré poste par poste, sans engagement.</p><a class="btn btn-gold" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><a class="btn btn-outline" href="{href("contact.html")}" style="margin-top:0.7em">Écrire via le formulaire</a><ul><li>Certifié RGE</li><li>Garantie décennale</li><li>{SITE["hours"]}</li><li>Angers et Maine-et-Loire</li></ul></div></aside>
 </div></section>
-<section class="section" data-nav="Pourquoi nous"><div class="wrap"><div class="section-head reveal"><div><span class="label">Pourquoi {N}</span><h2>Ce qui fait la différence<br><span class="h-light">sur un toit.</span></h2></div></div><ul class="reasons">
+<section class="section navy" data-nav="Pourquoi nous"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Pourquoi {N}</span><h2>Ce qui fait la différence<br><span class="h-light">sur un toit.</span></h2></div></div><ul class="reasons">
   <li class="reveal" style="--i:0"><h3>Un diagnostic honnête</h3><p>Nous montons sur le toit avant de chiffrer. Si une réparation suffit, nous ne vous vendons pas une réfection.</p></li>
   <li class="reveal" style="--i:1"><h3>Des finitions soignées</h3><p>Rives, noues, faîtages et abords de cheminée sont traités avec le même soin que la surface courante : c'est là que les toits fuient.</p></li>
   <li class="reveal" style="--i:2"><h3>RGE et garantie décennale</h3><p>Entreprise certifiée, assurée, qui vous ouvre droit aux aides de l'État pour les travaux de rénovation énergétique.</p></li></ul></div></section>
-<section class="section" data-nav="Services"><div class="wrap"><div class="section-head reveal"><div><span class="label">Nos autres services</span><h2>Tout ce qu'il faut<br><span class="h-light">pour votre toiture.</span></h2></div></div>{services_rows(exclude=s["slug"])}</div></section>
+<section class="section cream" data-nav="Services"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Nos autres services</span><h2>Tout ce qu'il faut<br><span class="h-light">pour votre toiture.</span></h2></div></div>{services_rows(exclude=s["slug"])}</div></section>
 {cta_band()}'''
     ld = [{"@context": "https://schema.org", "@type": "Service", "name": s["title"], "serviceType": s["title"], "provider": {"@id": SITE["url"] + "/#org"}, "areaServed": [z[0] for z in ZONES], "url": SITE["url"] + href(s["slug"] + ".html"), "description": s["seo_desc"]},
           {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Accueil", "item": SITE["url"] + "/"}, {"@type": "ListItem", "position": 2, "name": "Services", "item": SITE["url"] + "/#services"}, {"@type": "ListItem", "position": 3, "name": s["title"], "item": SITE["url"] + href(s["slug"] + ".html")}]},
@@ -380,24 +447,24 @@ def build_service(s):
 def build_zones():
     cards = "".join(f'<li id="{slugify(n)}" class="reveal" style="--i:{i % 2}"><h3>Couvreur à {n}</h3><p>{t}</p></li>' for i, (n, t) in enumerate(ZONES))
     body = page_top('<a href="/">Accueil</a><span>/</span><span>Zone d\'intervention</span>', "Zone d'intervention", 'Couvreur à Angers et <span class="h-light">dans tout le Maine-et-Loire.</span>', "Basés aux Garennes-sur-Loire, à dix minutes d'Angers, nous intervenons dans toute l'agglomération angevine et le département : dépannage de fuite, rénovation, toiture neuve, zinguerie, Velux et entretien.", "images/hero-bg.jpg", "Zone") + f'''
-<section class="section" data-nav="Communes"><div class="wrap"><div class="section-head reveal"><div><span class="label">Nos communes</span><h2>Là où nous travaillons<br><span class="h-light">chaque semaine.</span></h2></div><p>Un déplacement rapide, une connaissance des toitures locales, de l'ardoise de Trélazé à la tuile des pavillons récents.</p></div><ul class="zone-cards">{cards}</ul><p class="muted" style="margin-top:2em">Votre commune n'est pas dans la liste ? Nous couvrons l'ensemble du Maine-et-Loire : appelez-nous, nous vous dirons tout de suite si nous pouvons venir.</p></div></section>
-<section class="section" data-nav="Services"><div class="wrap"><div class="section-head reveal"><div><span class="label">Nos services</span><h2>Ce que nous faisons<br><span class="h-light">pour votre toit.</span></h2></div></div>{services_rows()}</div></section>
+<section class="section cream" data-nav="Communes"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Nos communes</span><h2>Là où nous travaillons<br><span class="h-light">chaque semaine.</span></h2></div><p>Un déplacement rapide, une connaissance des toitures locales, de l'ardoise de Trélazé à la tuile des pavillons récents.</p></div><ul class="zone-cards">{cards}</ul><p class="muted" style="margin-top:2em">Votre commune n'est pas dans la liste ? Nous couvrons l'ensemble du Maine-et-Loire : appelez-nous, nous vous dirons tout de suite si nous pouvons venir.</p></div></section>
+<section class="section navy" data-nav="Services"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Nos services</span><h2>Ce que nous faisons<br><span class="h-light">pour votre toit.</span></h2></div></div>{services_rows()}</div></section>
 {cta_band("Un toit à réparer<br>près de chez vous ?", "Diagnostic sur place et devis gratuit dans toute l'agglomération angevine.")}'''
     return layout("Zone d'intervention : couvreur à Angers et dans le Maine-et-Loire | Général Couverture", "Général Couverture intervient à Angers, Trélazé, Les Ponts-de-Cé, Avrillé, Bouchemaine, Brissac Loire Aubance et dans tout le Maine-et-Loire. Devis gratuit au 06 21 32 37 89.", body, "zones-intervention.html", section="Zone")
 
 def build_contact():
     body = page_top('<a href="/">Accueil</a><span>/</span><span>Contact</span>', "Contact et devis", 'Parlons de <span class="h-light">votre toiture.</span>', "Un appel suffit pour une urgence. Pour un devis, décrivez-nous votre projet : nous vous rappelons sous 24 h ouvrées et nous fixons une visite.", "images/apropos.webp", "Contact") + f'''
-<section class="section" data-nav="Contact"><div class="wrap contact-grid"><div class="reveal"><span class="label">{N}</span><h2 style="margin-top:1.2em;font-size:1.8rem">Couvreur à Angers,<br><span class="h-light">Les Garennes-sur-Loire.</span></h2><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><ul class="info-list"><li><strong>Horaires</strong><span>{SITE["hours"]}<br>Urgence fuite : appelez, nous nous organisons.</span></li><li><strong>Secteur</strong><span>Angers, son agglomération et tout le Maine-et-Loire</span></li><li><strong>Devis</strong><span>Gratuit, après visite sur site, chiffré poste par poste</span></li><li><strong>Garanties</strong><span>Certifié RGE · Garantie décennale</span></li></ul></div>{form_block()}</div></section>
-<section class="section" data-nav="Services"><div class="wrap"><div class="section-head reveal"><div><span class="label">Nos services</span><h2>Ce que nous pouvons faire<br><span class="h-light">pour vous.</span></h2></div></div>{services_rows()}</div></section>'''
+<section class="section cream" data-nav="Contact"><div class="wrap contact-grid"><div class="reveal"><span class="label gold">{N}</span><h2 style="margin-top:1.2em;font-size:1.8rem">Couvreur à Angers,<br><span class="h-light">Les Garennes-sur-Loire.</span></h2><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><ul class="info-list"><li><strong>Horaires</strong><span>{SITE["hours"]}<br>Urgence fuite : appelez, nous nous organisons.</span></li><li><strong>Secteur</strong><span>Angers, son agglomération et tout le Maine-et-Loire</span></li><li><strong>Devis</strong><span>Gratuit, après visite sur site, chiffré poste par poste</span></li><li><strong>Garanties</strong><span>Certifié RGE · Garantie décennale</span></li></ul></div>{form_block()}</div></section>
+<section class="section navy" data-nav="Services"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Nos services</span><h2>Ce que nous pouvons faire<br><span class="h-light">pour vous.</span></h2></div></div>{services_rows()}</div></section>'''
     return layout("Contact et devis gratuit | Général Couverture, couvreur à Angers", "Appelez Général Couverture au 06 21 32 37 89 ou envoyez votre demande de devis : couvreur à Angers et dans le Maine-et-Loire, réponse sous 24 h.", body, "contact.html", section="Contact")
 
 def build_mentions():
     body = f'''<section class="page-top" data-nav="Mentions"><div><nav class="crumbs label muted"><a href="/">Accueil</a><span>/</span><span>Mentions légales</span></nav><h1>Mentions <span class="h-light">légales.</span></h1></div></section>
-<section class="section"><div class="wrap legal" style="max-width:860px"><h2>Éditeur du site</h2><p>{N}, entreprise de couverture, Les Garennes-sur-Loire – Angers (Maine-et-Loire). Téléphone : {SITE["tel"]}. Directeur de la publication : le gérant de l'entreprise.</p><h2>Hébergement</h2><p>Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, États-Unis.</p><h2>Propriété intellectuelle</h2><p>L'ensemble des contenus de ce site (textes, visuels, animation 3D) est la propriété de {N} ou de ses partenaires. Toute reproduction sans autorisation est interdite.</p><h2>Données personnelles</h2><p>Les informations transmises via le formulaire de contact (nom, téléphone, e-mail, message) sont utilisées uniquement pour répondre à votre demande et ne sont jamais cédées à des tiers. Vous pouvez demander leur suppression à tout moment par téléphone. Ce site n'utilise pas de cookies de suivi publicitaire.</p></div></section>'''
+<section class="section cream"><div class="wrap legal" style="max-width:860px"><h2>Éditeur du site</h2><p>{N}, entreprise de couverture, Les Garennes-sur-Loire – Angers (Maine-et-Loire). Téléphone : {SITE["tel"]}. Directeur de la publication : le gérant de l'entreprise.</p><h2>Hébergement</h2><p>Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, États-Unis.</p><h2>Propriété intellectuelle</h2><p>L'ensemble des contenus de ce site (textes, visuels, maquette 3D) est la propriété de {N} ou de ses partenaires. Toute reproduction sans autorisation est interdite.</p><h2>Données personnelles</h2><p>Les informations transmises via le formulaire de contact (nom, téléphone, e-mail, message) sont utilisées uniquement pour répondre à votre demande et ne sont jamais cédées à des tiers. Vous pouvez demander leur suppression à tout moment par téléphone. Ce site n'utilise pas de cookies de suivi publicitaire.</p></div></section>'''
     return layout("Mentions légales | Général Couverture", "Mentions légales du site de Général Couverture, couvreur à Angers.", body, "mentions-legales.html", section="Mentions")
 
 def build_404():
-    body = f'''<section class="page-top" data-nav="404"><div><span class="label">Erreur 404</span><h1 style="margin-top:0.9em">Cette page <span class="h-light">n'existe pas.</span></h1></div><div><p class="lead">Le lien est peut-être ancien. Retrouvez nos services ou appelez-nous directement.</p><div class="btn-row" style="margin-top:1.4em"><a class="btn btn-dark" href="/">Retour à l'accueil</a><a class="tel-link" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a></div></div></section>'''
+    body = f'''<section class="page-top" data-nav="404" style="min-height:70vh"><div><span class="label gold">Erreur 404</span><h1 style="margin-top:0.9em">Cette page <span class="h-light">n'existe pas.</span></h1></div><div><p class="lead">Le lien est peut-être ancien. Retrouvez nos services ou appelez-nous directement.</p><div class="btn-row" style="margin-top:1.4em"><a class="btn btn-gold" href="/">Retour à l'accueil</a><a class="tel-link" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a></div></div></section>'''
     return layout("Page introuvable | Général Couverture", "Page introuvable.", body, "404.html", section="404")
 
 def write(name, html):
