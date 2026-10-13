@@ -11,33 +11,33 @@ const smooth = (t) => { t = clamp(t); return t * t * (3 - 2 * t); };
 const easeOut = (t) => 1 - Math.pow(1 - clamp(t), 3);
 const win = (v, start, dur) => clamp((v - start) / dur);
 const deg = THREE.MathUtils.degToRad;
+const isMobile = () => innerWidth <= 820;
 
 // ------------------------------------------------------------------ dimensions (metres)
 const W = 10, D = 7, Hw = 3.5, A = deg(35), O = 0.5, GO = 0.45;
-const HP = Hw + 0.35;                // roof plane height at the wall line (room for sablière + chevrons)
+const HP = Hw + 0.35;
 const tanA = Math.tan(A), cosA = Math.cos(A), sinA = Math.sin(A);
-const S = D / 2 + O;                 // half span incl. eave overhang
-const yRidge = HP + (D / 2) * tanA;  // ridge height
-const yEave = HP - O * tanA;         // eave height (roof plane at z = ±S)
-const L = S / cosA;                  // slope length eave -> ridge
-const Lx = W + 2 * GO;               // roof length incl. gable overhangs
+const S = D / 2 + O;
+const yRidge = HP + (D / 2) * tanA;
+const yEave = HP - O * tanA;
+const L = S / cosA;
+const Lx = W + 2 * GO;
 const yRoof = (z) => yRidge - Math.abs(z) * tanA;
-// point on the front slope (z > 0) at normal offset d
 const onFront = (x, z, d) => new THREE.Vector3(x, yRoof(z) + d * cosA, z + d * sinA);
 const CHIM = { x: 2.4, z: 1.3, half: 0.45 };
 
 // ------------------------------------------------------------------ renderer
+const stage = $('#stage');
 const canvas = $('#scene');
 let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 } catch (e) {
-  document.body.classList.add('no-3d');
+  stage.classList.add('no-3d');
   $('#loader').classList.add('is-hidden');
   throw e;
 }
-const isPortrait = () => innerWidth < 820 || innerWidth / innerHeight < 1;
-renderer.setPixelRatio(Math.min(devicePixelRatio, isPortrait() ? 1.75 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile() ? 1.75 : 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -53,7 +53,7 @@ const amb = new THREE.AmbientLight(0xffffff, 0.25);
 const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
 sun.position.set(8, 14, 7);
 sun.castShadow = true;
-sun.shadow.mapSize.set(isPortrait() ? 1024 : 2048, isPortrait() ? 1024 : 2048);
+sun.shadow.mapSize.set(isMobile() ? 1024 : 2048, isMobile() ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 });
 sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.03;
@@ -62,9 +62,9 @@ doorLight.position.set(0, 2.3, D / 2 + 1.0);
 scene.add(hemi, amb, sun, sun.target, doorLight);
 
 const LIGHTS = {
-  jour: { sun: [8, 14, 7], sunI: 2.4, sunC: 0xfff4e0, skyC: 0xbcd0e6, gndC: 0x5a4a3a, hemiI: 0.7, ambI: 0.25, glow: 0, door: 0, bg: '#0b0f0e' },
-  soir: { sun: [-11, 4.5, 9], sunI: 2.1, sunC: 0xff9a55, skyC: 0x7a5f7e, gndC: 0x3a2a22, hemiI: 0.5, ambI: 0.16, glow: 0.35, door: 2.5, bg: '#120d0c' },
-  nuit: { sun: [-6, 11, -5], sunI: 0.35, sunC: 0x8ea6ff, skyC: 0x25324d, gndC: 0x0a0a0a, hemiI: 0.4, ambI: 0.08, glow: 1.3, door: 7, bg: '#060809' },
+  jour: { sun: [8, 14, 7], sunI: 2.4, sunC: 0xfff4e0, skyC: 0xbcd0e6, gndC: 0x5a4a3a, hemiI: 0.7, ambI: 0.25, glow: 0, door: 0 },
+  soir: { sun: [-11, 4.5, 9], sunI: 2.1, sunC: 0xff9a55, skyC: 0x7a5f7e, gndC: 0x3a2a22, hemiI: 0.5, ambI: 0.16, glow: 0.35, door: 2.5 },
+  nuit: { sun: [-6, 11, -5], sunI: 0.35, sunC: 0x8ea6ff, skyC: 0x25324d, gndC: 0x0a0a0a, hemiI: 0.4, ambI: 0.08, glow: 1.3, door: 7 },
 };
 const lightCur = { sun: new THREE.Vector3(8, 14, 7), sunI: 2.4, sunC: new THREE.Color(0xfff4e0), skyC: new THREE.Color(0xbcd0e6), gndC: new THREE.Color(0x5a4a3a), hemiI: 0.7, ambI: 0.25, glow: 0, door: 0 };
 let lightMode = 'jour';
@@ -100,14 +100,11 @@ const M = {
   stain: new THREE.MeshStandardMaterial({ color: 0x4a3a28, roughness: 1, transparent: true, opacity: 0, depthWrite: false }),
   ring: new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xff3b2f, emissiveIntensity: 1.2, transparent: true, opacity: 0, depthWrite: false }),
 };
-
 const shadowed = (o) => { o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return o; };
 
 // ------------------------------------------------------------------ world
 const world = new THREE.Group();
 scene.add(world);
-
-// plinth + garden
 const plinth = new THREE.Mesh(new RoundedBoxGeometry(21, 0.7, 15.5, 4, 0.3), M.plinth);
 plinth.position.y = -0.35; plinth.receiveShadow = true; world.add(plinth);
 const lawn = new THREE.Mesh(new RoundedBoxGeometry(4.2, 0.1, 8, 2, 0.05), M.lawn);
@@ -126,7 +123,6 @@ trunk.position.y = 1.2; tree.add(trunk);
 });
 tree.position.set(-8, 0, 2.6); world.add(shadowed(tree));
 
-// walls + gables
 const walls = new THREE.Mesh(new THREE.BoxGeometry(W, Hw, D), M.wall);
 walls.position.y = Hw / 2; world.add(shadowed(walls));
 const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.06, 0.45, D + 0.06), M.base);
@@ -138,14 +134,11 @@ for (const sgn of [1, -1]) {
   const gb = new THREE.Mesh(gGeo, M.wall);
   gb.rotation.y = sgn * Math.PI / 2; gb.position.x = sgn * (W / 2 - 0.25);
   world.add(shadowed(gb));
-  // oculus
   const oc = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 24), M.glass);
   oc.rotation.z = Math.PI / 2; oc.position.set(sgn * (W / 2 + 0.02), Hw + 1.15, 0); world.add(oc);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.05, 8, 32), M.frame);
   ring.rotation.y = Math.PI / 2; ring.position.set(sgn * (W / 2 + 0.05), Hw + 1.15, 0); world.add(shadowed(ring));
 }
-
-// windows & door
 function addOpening(x, y, z, w, h, rotY, { shutters = true, door = false } = {}) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = rotY;
   const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.16, h + 0.16, 0.1), M.frame); fr.position.z = 0.03; g.add(fr);
@@ -174,7 +167,7 @@ addOpening(3.4, 1.75, -D / 2, 1.25, 1.45, Math.PI);
 addOpening(W / 2, 1.75, 0.9, 1.1, 1.3, Math.PI / 2);
 addOpening(-W / 2, 1.75, -0.7, 1.1, 1.3, -Math.PI / 2);
 
-// ------------------------------------------------------------------ timber frame (world coords, build order)
+// ------------------------------------------------------------------ timber frame
 const roof = new THREE.Group(); world.add(roof);
 const frame = [];
 const UP = new THREE.Vector3(0, 1, 0);
@@ -187,24 +180,20 @@ function beam(from, to, w, h, mat) {
   roof.add(m); frame.push(m); return m;
 }
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-// sablières
 for (const sg of [1, -1]) beam(V(-W / 2, Hw + 0.08, sg * (D / 2 - 0.08)), V(W / 2, Hw + 0.08, sg * (D / 2 - 0.08)), 0.16, 0.16, M.timber);
-// fermes : entraits, arbalétriers, poinçons
 const fermesX = [-W / 2 + 0.6, 0, W / 2 - 0.6];
 for (const x of fermesX) beam(V(x, Hw + 0.28, -3.2), V(x, Hw + 0.28, 3.2), 0.18, 0.24, M.timber);
 for (const x of fermesX) for (const sg of [1, -1]) beam(V(x, Hw + 0.42, sg * 3.0), V(x, yRidge - 0.62, 0), 0.16, 0.22, M.timber);
 for (const x of fermesX) beam(V(x, Hw + 0.42, 0), V(x, yRidge - 0.64, 0), 0.16, 0.16, M.timber);
-// pannes
 const panneY = (z) => yRoof(z) - 0.268 - 0.1;
 for (const z of [-D / 4, D / 4, 0]) beam(V(-Lx / 2, panneY(z), z), V(Lx / 2, panneY(z), z), 0.2, 0.2, M.timber);
-// chevrons
 const NCH = 18;
 for (let i = 0; i < NCH; i++) {
   const x = -Lx / 2 + 0.12 + i * ((Lx - 0.24) / (NCH - 1));
   for (const sg of [1, -1]) beam(V(x, yEave - 0.134, sg * S), V(x, yRidge - 0.134, 0), 0.08, 0.22, M.rafter);
 }
 
-// ------------------------------------------------------------------ tile / slate geometry
+// ------------------------------------------------------------------ tiles
 const tileGeo = (() => {
   const flat = new THREE.BoxGeometry(0.3, 0.4, 0.025);
   const bump = new THREE.CylinderGeometry(0.065, 0.065, 0.4, 10, 1, false, -Math.PI / 2, Math.PI);
@@ -213,8 +202,6 @@ const tileGeo = (() => {
 })();
 const slateGeo = new THREE.BoxGeometry(0.22, 0.32, 0.008);
 const ridgeTileGeo = new THREE.CylinderGeometry(0.13, 0.13, Lx, 12, 1, false, 0, Math.PI);
-
-// ------------------------------------------------------------------ slopes (layers in slope-local coords: x along ridge, y up-slope, z normal)
 const TILE = { rows: 14, cols: Math.floor(Lx / 0.3), pitch: 0.33, v0: 0.25, len: 0.4, w: 0.3, tilt: -0.065, stagger: false, z0: 0.065, lift: 1.6 };
 const SLATE = { rows: 34, cols: 47, pitch: 0.14, v0: 0.2, len: 0.32, w: 0.23, tilt: -0.035, stagger: true, z0: 0.055, lift: 1.6 };
 const chimLocal = { x: CHIM.x, v: (S - CHIM.z) / cosA, half: CHIM.half + 0.12 };
@@ -281,11 +268,9 @@ function colorInstances(mesh, mode) {
   mesh.instanceColor.needsUpdate = true;
 }
 
-// ridge, gutters, chimney
 const ridge = new THREE.Group(); roof.add(ridge);
 const ridgeTiles = new THREE.Mesh(ridgeTileGeo, M.tile.clone()); ridgeTiles.rotation.z = Math.PI / 2; ridgeTiles.position.y = yRidge + 0.03; ridge.add(shadowed(ridgeTiles));
 const ridgeZinc = new THREE.Mesh(new THREE.BoxGeometry(Lx, 0.07, 0.42), M.zinc); ridgeZinc.position.y = yRidge + 0.08; ridgeZinc.visible = false; ridge.add(shadowed(ridgeZinc));
-
 const gutters = new THREE.Group(); roof.add(gutters);
 for (const sg of [1, -1]) {
   const gu = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, Lx, 12, 1, true, Math.PI, Math.PI), M.zinc);
@@ -295,7 +280,6 @@ for (const sg of [1, -1]) {
     dp.position.set(sx * (W / 2 - 0.4), (yEave - 0.15) / 2, sg * (D / 2 + 0.11)); gutters.add(shadowed(dp));
   }
 }
-
 const chimney = new THREE.Group(); world.add(chimney);
 const chBody = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.3, 0.9), M.chimney); chBody.position.set(CHIM.x, yRoof(CHIM.z) - 0.95 + 1.15, CHIM.z); chimney.add(shadowed(chBody));
 const chCap = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.14, 1.08), M.cap); chCap.position.set(CHIM.x, yRoof(CHIM.z) + 1.42, CHIM.z); chimney.add(shadowed(chCap));
@@ -311,7 +295,6 @@ const ring = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.03, 8, 48), M.ring);
 const drop = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 14), M.drop); drop.visible = false; leak.add(drop);
 const P0 = onFront(CHIM.x, CHIM.z - 0.4, -0.05), P1 = onFront(CHIM.x, 3.25, -0.05);
 const stain = new THREE.Mesh(new THREE.CircleGeometry(0.34, 24), M.stain); stain.scale.set(1.1, 0.7, 1); stain.rotation.x = A - Math.PI / 2; stain.position.copy(onFront(CHIM.x, 3.22, -0.03)); leak.add(stain);
-// rain
 const RN = 1800; const rp = new Float32Array(RN * 3);
 for (let i = 0; i < RN; i++) { rp[i * 3] = -8 + Math.random() * 16; rp[i * 3 + 1] = 3 + Math.random() * 10; rp[i * 3 + 2] = -5 + Math.random() * 11; }
 const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rp, 3));
@@ -320,47 +303,47 @@ rain.visible = false; leak.add(rain);
 
 // ------------------------------------------------------------------ state
 const exp = $('#experience');
-const chapters = $$('.chapter');
-const NCHAP = chapters.length;
+const steps = $$('.step');
+const NCHAP = steps.length;
 const KEYS = [
-  { az: 38, el: 20, dist: 38, tgt: [0, 3.0, 0] },
-  { az: 56, el: 33, dist: 34, tgt: [0, 3.8, 0] },
-  { az: 22, el: 27, dist: 32, tgt: [0, 3.6, 0] },
-  { az: 26, el: 21, dist: 31, tgt: [0, 5.4, 0.6] },
-  { az: 18, el: 26, dist: 16, tgt: [2.4, 5.2, 1.6] },
-  { az: -28, el: 19, dist: 36, tgt: [0, 3.2, 0] },
-  { az: 42, el: 17, dist: 40, tgt: [0, 3.0, 0] },
+  { az: 38, el: 20, dist: 34, tgt: [0, 3.2, 0] },
+  { az: 56, el: 33, dist: 32, tgt: [0, 3.8, 0] },
+  { az: 22, el: 27, dist: 30, tgt: [0, 3.6, 0] },
+  { az: 26, el: 21, dist: 29, tgt: [0, 5.4, 0.6] },
+  { az: 18, el: 26, dist: 15, tgt: [2.4, 5.2, 1.6] },
+  { az: -28, el: 19, dist: 33, tgt: [0, 3.2, 0] },
 ];
-const st = {
-  p: 0, build: 1, explode: 0, leakW: 0,
-  az: KEYS[0].az, el: KEYS[0].el, dist: KEYS[0].dist, tgt: new THREE.Vector3(...KEYS[0].tgt),
-  userAz: 0, parAz: 0, parEl: 0, frontOpacity: 1,
-};
+const st = { p: 0, cp: 0, build: 1, explode: 0, leakW: 0, az: KEYS[0].az, el: KEYS[0].el, dist: KEYS[0].dist, tgt: new THREE.Vector3(...KEYS[0].tgt), userAz: 0, parAz: 0, parEl: 0 };
 let matMode = 'tuile', leakStep = 0, leakManual = false, leakTimer = 0;
 let lastBuild = -1, lastExplode = -1, dirty = true;
+let stageW = 1, stageH = 1, stageTop = 0;
 
+// Progression : un chapitre commence quand le haut de son texte franchit la ligne de déclenchement
+// (sous la scène épinglée sur mobile, au milieu de l'écran sur grand écran).
 function readScroll() {
-  const top = exp.offsetTop, total = Math.max(1, exp.offsetHeight - innerHeight);
-  st.p = clamp((scrollY - top) / total);
+  const line = isMobile() ? stage.getBoundingClientRect().bottom + 14 : innerHeight * 0.5;
+  let cp = 0;
+  for (let i = 0; i < NCHAP; i++) {
+    const r = steps[i].getBoundingClientRect();
+    if (r.top <= line) cp = i + clamp((line - r.top) / Math.max(1, r.height + (i === NCHAP - 1 ? innerHeight * 0.3 : 0)));
+  }
+  st.cp = Math.min(cp, NCHAP - 0.001);
+  st.p = st.cp / NCHAP;
 }
-addEventListener('scroll', readScroll, { passive: true });
 
 function chapterWeight(i, cp) {
   const f = cp - i; if (f < 0 || f > 1) return 0;
-  const fin = i === 0 ? 1 : smooth(f / 0.1);
-  const fout = i === NCHAP - 1 ? 1 : 1 - smooth((f - 0.9) / 0.1);
+  const fin = i === 0 ? 1 : smooth(f / 0.12);
+  const fout = i === NCHAP - 1 ? 1 : 1 - smooth((f - 0.88) / 0.12);
   return fin * fout;
 }
-
-// targets derived from scroll progress
 function targets() {
-  const cp = st.p * NCHAP, ci = Math.min(NCHAP - 1, Math.floor(cp)), cf = cp - ci;
+  const cp = st.cp, ci = Math.min(NCHAP - 1, Math.floor(cp)), cf = cp - ci;
   let build = 1, explode = 0, leakW = 0;
   if (ci === 1) build = cf < 0.2 ? 1 - cf / 0.2 : 0.5 * (cf - 0.2) / 0.8;
   else if (ci === 2) build = 0.5 + 0.5 * cf;
   if (ci === 3) explode = smooth(cf / 0.65);
   else if (ci === 4) { explode = 1 - smooth(cf / 0.15); leakW = smooth((cf - 0.05) / 0.12) * (1 - smooth((cf - 0.82) / 0.15)); }
-  // camera keys: transition around chapter boundaries
   const ki = clamp(cp - 0.5, 0, NCHAP - 1), kb = Math.floor(ki), kf = smooth((ki - kb - 0.25) / 0.5);
   const a = KEYS[Math.min(kb, NCHAP - 1)], b = KEYS[Math.min(kb + 1, NCHAP - 1)];
   let az = lerp(a.az, b.az, kf), el = lerp(a.el, b.el, kf), dist = lerp(a.dist, b.dist, kf);
@@ -370,25 +353,22 @@ function targets() {
     tgt.lerp(new THREE.Vector3(...stepTgt), leakW * 0.9);
     az += leakStep * 7 * leakW;
   }
-  if (ci === 6) az += cf * 35;
+  if (ci === NCHAP - 1) az += cf * 30;
   return { build, explode, leakW, az, el, dist, tgt, ci, cf, cp };
 }
 
 // ------------------------------------------------------------------ UI
 function setStep(n, manual) {
   leakStep = n; if (manual) leakManual = true; leakTimer = 0;
-  $$('.step').forEach((b) => b.classList.toggle('is-active', +b.dataset.step === n));
+  $$('.step-btn').forEach((b) => b.classList.toggle('is-active', +b.dataset.step === n));
   $$('.step-text').forEach((p) => { p.hidden = +p.dataset.stepText !== n; });
 }
-$$('.step').forEach((b) => b.addEventListener('click', () => setStep(+b.dataset.step, true)));
+$$('.step-btn').forEach((b) => b.addEventListener('click', () => setStep(+b.dataset.step, true)));
 function setMat(mode) {
   matMode = mode;
   $$('[data-mat]').forEach((b) => b.classList.toggle('is-active', b.dataset.mat === mode));
   const slate = mode === 'ardoise';
-  for (const sl of slopes) {
-    sl.tiles.visible = !slate; sl.slates.visible = slate;
-    colorInstances(slate ? sl.slates : sl.tiles, mode);
-  }
+  for (const sl of slopes) { sl.tiles.visible = !slate; sl.slates.visible = slate; colorInstances(slate ? sl.slates : sl.tiles, mode); }
   ridgeTiles.visible = !slate; ridgeZinc.visible = slate;
   if (!slate) { const c = new THREE.Color(); c.setHSL(mode === 'vieillie' ? 0.035 : 0.05, mode === 'vieillie' ? 0.45 : 0.62, mode === 'vieillie' ? 0.33 : 0.46); ridgeTiles.material.color.copy(c); }
   dirty = true;
@@ -397,23 +377,22 @@ $$('[data-mat]').forEach((b) => b.addEventListener('click', () => setMat(b.datas
 function setLight(mode) {
   lightMode = mode;
   $$('[data-light]').forEach((b) => b.classList.toggle('is-active', b.dataset.light === mode));
-  document.body.style.backgroundColor = LIGHTS[mode].bg;
 }
 $$('[data-light]').forEach((b) => b.addEventListener('click', () => setLight(b.dataset.light)));
 
-// pointer: drag to rotate (horizontal), parallax on desktop
-let dragging = false, lastX = 0, moved = 0;
-canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; moved = 0; });
+let dragging = false, lastX = 0;
+canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; });
 addEventListener('pointermove', (e) => {
-  if (dragging) { const dx = e.clientX - lastX; lastX = e.clientX; moved += Math.abs(dx); st.userAz += dx * 0.25; }
-  if (e.pointerType === 'mouse' && !isPortrait()) {
-    st.parAz = (e.clientX / innerWidth - 0.5) * 6; st.parEl = (e.clientY / innerHeight - 0.5) * -3;
+  if (dragging) { const dx = e.clientX - lastX; lastX = e.clientX; st.userAz += dx * 0.25; }
+  if (e.pointerType === 'mouse' && !isMobile()) {
+    const r = stage.getBoundingClientRect();
+    st.parAz = ((e.clientX - r.left) / r.width - 0.5) * 5; st.parEl = ((e.clientY - r.top) / r.height - 0.5) * -2.5;
   }
 });
 addEventListener('pointerup', () => { dragging = false; });
 addEventListener('pointercancel', () => { dragging = false; });
 
-// labels
+// labels (positioned inside the stage box)
 const layerLabels = {
   tuiles: { x: -3.5, v: 2.6, z: 0.1, lift: TILE.lift },
   liteaux: { x: -1.3, v: 2.1, z: 0.05, lift: 1.2 },
@@ -427,26 +406,26 @@ const leakAnchors = [onFront(CHIM.x, 3.2, 0.15), onFront(CHIM.x, CHIM.z - 0.52, 
 const _v = new THREE.Vector3();
 function placeLabel(el, worldPos, opacity) {
   _v.copy(worldPos).project(camera);
-  const x = (_v.x + 1) / 2 * innerWidth, y = (1 - _v.y) / 2 * innerHeight;
-  const flip = x > innerWidth * (isPortrait() ? 0.48 : 0.6);
+  const x = (_v.x + 1) / 2 * stageW, y = (1 - _v.y) / 2 * stageH;
+  const flip = x > stageW * 0.52;
   el.classList.toggle('is-flipped', flip);
   el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(${flip ? '-100%' : '0'}, -50%) translate(${flip ? '6px' : '-6px'}, 0)`;
   el.style.opacity = (_v.z < 1 ? opacity : 0).toFixed(2);
 }
 
-// ------------------------------------------------------------------ resize
+// ------------------------------------------------------------------ resize (stage box)
 function resize() {
-  const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  if (isPortrait()) camera.setViewOffset(w, h * 1.4, 0, h * 0.4, w, h);
-  else camera.setViewOffset(w * 1.38, h, 0, 0, w, h);
+  const r = stage.getBoundingClientRect();
+  stageW = Math.max(1, Math.round(r.width)); stageH = Math.max(1, Math.round(r.height));
+  renderer.setSize(stageW, stageH, false);
+  camera.aspect = stageW / stageH;
   camera.updateProjectionMatrix();
   readScroll();
 }
 addEventListener('resize', resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 
-// ------------------------------------------------------------------ apply build / explode to geometry
+// ------------------------------------------------------------------ build / explode
 function applyBuild(build, explode) {
   const N = frame.length, fdur = 1.5 / N;
   for (let i = 0; i < N; i++) {
@@ -476,24 +455,26 @@ function applyBuild(build, explode) {
 // ------------------------------------------------------------------ main loop
 const clock = new THREE.Clock();
 let firstFrame = true;
+const counterEl = $('#stage-counter'), barEl = $('#stage-bar');
+const pad2 = (n) => String(n).padStart(2, '0');
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05), time = clock.elapsedTime;
+  readScroll();
   const T = targets();
   const k = 1 - Math.exp(-dt * 7), kc = 1 - Math.exp(-dt * 4.5);
   st.build = lerp(st.build, T.build, k);
   st.explode = lerp(st.explode, T.explode, k);
   st.leakW = lerp(st.leakW, T.leakW, k);
   st.az = lerp(st.az, T.az, kc); st.el = lerp(st.el, T.el, kc); st.dist = lerp(st.dist, T.dist, kc); st.tgt.lerp(T.tgt, kc);
-  if (!dragging && T.ci !== 5 && T.ci !== 6 && T.ci !== 0) st.userAz *= 0.97;
+  if (!dragging && T.ci !== 5 && T.ci !== 0) st.userAz *= 0.97;
 
   if (dirty || Math.abs(st.build - lastBuild) > 1e-4 || Math.abs(st.explode - lastExplode) > 1e-4) {
     applyBuild(st.build, st.explode); lastBuild = st.build; lastExplode = st.explode; dirty = false;
   }
 
-  // camera
-  const portrait = isPortrait();
+  // camera: fit the house whatever the stage aspect ratio
   const az = deg(st.az + st.userAz + st.parAz + Math.sin(time * 0.25) * 1.5), el = deg(st.el + st.parEl);
-  const dist = st.dist * (portrait ? clamp(1.3 / camera.aspect, 1.15, 3.2) : 1);
+  const dist = st.dist * clamp(1.05 / camera.aspect, 1, 2.4) * (isMobile() ? 0.95 : 1);
   camera.position.set(st.tgt.x + dist * Math.sin(az) * Math.cos(el), st.tgt.y + dist * Math.sin(el), st.tgt.z + dist * Math.cos(az) * Math.cos(el));
   camera.lookAt(st.tgt);
 
@@ -525,7 +506,7 @@ function tick() {
     rainGeo.attributes.position.needsUpdate = true;
   }
   if (lw > 0.5 && !leakManual) { leakTimer += dt; if (leakTimer > 4.2) setStep((leakStep + 1) % 3, false); }
-  if (lw < 0.05) { leakTimer = 0; }
+  if (lw < 0.05) leakTimer = 0;
   const pulse = 0.5 + 0.5 * Math.sin(time * 4);
   const showDrop = lw > 0.3 && leakStep < 2;
   drop.visible = showDrop;
@@ -537,6 +518,7 @@ function tick() {
   M.ring.opacity = lw * (leakStep >= 1 ? 0.5 + pulse * 0.5 : 0);
   ring.visible = M.ring.opacity > 0.02; stain.visible = M.stain.opacity > 0.02;
   ring.scale.setScalar(1 + pulse * 0.12);
+
   // labels
   const lblOp = smooth((st.explode - 0.65) / 0.3) * (1 - lw);
   for (const { el, cfg } of labelEls) {
@@ -545,14 +527,18 @@ function tick() {
     placeLabel(el, _p, lblOp);
   }
   leakEls.forEach((el, i) => placeLabel(el, leakAnchors[i], (lw > 0.3 && leakStep === i) ? 1 : 0));
-  // panels
-  chapters.forEach((c, i) => {
-    const wgt = chapterWeight(i, T.cp); const panel = c.firstElementChild;
-    panel.style.opacity = wgt.toFixed(2); panel.style.pointerEvents = wgt > 0.4 ? 'auto' : 'none';
+
+  // steps opacity (desktop) + progress UI
+  const mobile = isMobile();
+  steps.forEach((c, i) => {
+    const inner = c.firstElementChild;
+    inner.style.opacity = mobile ? '' : chapterWeight(i, T.cp).toFixed(2);
   });
+  if (counterEl) counterEl.textContent = `${pad2(T.ci + 1)} / ${pad2(NCHAP)}`;
+  if (barEl) barEl.style.width = `${(st.p * 100).toFixed(1)}%`;
 
   renderer.render(scene, camera);
-  if (firstFrame) { firstFrame = false; setTimeout(() => $('#loader').classList.add('is-hidden'), 350); }
+  if (firstFrame) { firstFrame = false; setTimeout(() => $('#loader').classList.add('is-hidden'), 300); }
   requestAnimationFrame(tick);
 }
 
@@ -563,3 +549,20 @@ resize();
 applyBuild(1, 0);
 sun.target.position.set(0, 2, 0);
 tick();
+
+// Paramètres d'URL pour les captures de contrôle (?step=3&f=0.6&mat=ardoise&light=nuit&leak=1&to=%23services)
+const qs = new URLSearchParams(location.search);
+if (qs.has('step') || qs.has('to')) {
+  const go = () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    if (qs.get('mat')) setMat(qs.get('mat'));
+    if (qs.get('light')) setLight(qs.get('light'));
+    if (qs.has('leak')) setStep(+qs.get('leak'), true);
+    if (qs.has('to')) { const el = document.querySelector(qs.get('to')); if (el) el.scrollIntoView(); return; }
+    const i = clamp(+qs.get('step') || 0, 0, NCHAP - 1), f = clamp(+(qs.get('f') || 0.5));
+    const r = steps[i].getBoundingClientRect();
+    const line = isMobile() ? stage.getBoundingClientRect().bottom + 14 : innerHeight * 0.5;
+    scrollBy(0, r.top - line + f * r.height);
+  };
+  addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(go)));
+}
