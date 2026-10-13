@@ -1,4 +1,4 @@
-// Général Couverture — interactions : en-tête, menu, cartes de services au défilement, bande en perspective, avant/après, formulaire
+// Général Couverture — interactions : en-tête, menu, anneaux 3D au défilement (services, méthode, réalisations), avant/après, formulaire
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -43,76 +43,59 @@
     reveals.forEach((el) => io.observe(el));
   } else reveals.forEach((el) => el.classList.add('in'));
 
-  // ---------- services : cartes 3D pilotées par le défilement ----------
-  const deckSec = $('.deck-section');
-  if (deckSec) {
-    const stageEl = $('.deck-stage', deckSec), cards = $$('.deck-card', deckSec), N = cards.length;
-    const curEl = $('#deck-cur'), titleEl = $('#deck-title'), descEl = $('#deck-desc'), linkEl = $('#deck-link'), dots = $$('.deck-dots button'), hint = $('.deck-hint');
-    let cur = 0, shown = -1, mx = 0, my = 0, started = false;
-    const range = () => Math.max(1, deckSec.offsetHeight - stageEl.offsetHeight);
-    const progress = () => clamp(-deckSec.getBoundingClientRect().top / range(), 0, 1) * (N - 1);
-    function place(i, d) {
-      const c = cards[i], mobile = isMobile(), side = i % 2 ? 1 : -1;
-      let x, y, z, ry, rx, op, bl;
-      if (d >= 0) {
-        x = side * Math.min(d, 2.2) * (mobile ? 44 : 150); y = d * (mobile ? 26 : 30); z = -d * (mobile ? 520 : 760);
-        ry = -side * Math.min(d, 1.6) * 13; rx = 0;
-        op = clamp(1 - (d - 0.25) * 0.3, 0.04, 1); bl = clamp((d - 0.4) * 2.4, 0, 9);
-      } else {
-        const e = -d;
-        x = -side * e * 140; y = -e * (mobile ? 240 : 340); z = e * 460; ry = side * e * 12; rx = e * 20;
-        op = clamp(1 - e * 1.6, 0, 1); bl = clamp(e * 7, 0, 9);
-      }
-      const front = Math.abs(d) < 0.5;
-      c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${(ry + (front ? mx : 0)).toFixed(2)}deg) rotateX(${(rx + (front ? my : 0)).toFixed(2)}deg)`;
-      c.style.opacity = op.toFixed(3);
-      c.style.filter = bl > 0.05 ? `blur(${bl.toFixed(2)}px)` : 'none';
-      c.style.zIndex = String(100 - Math.round(Math.abs(d) * 10));
-      c.style.visibility = (op < 0.02 || d > 2.6) ? 'hidden' : 'visible';
-      c.classList.toggle('is-front', front);
+  // ---------- anneaux 3D pilotés par le défilement (services, méthode, réalisations) ----------
+  $$('.ring-section').forEach((sec) => {
+    const stage = $('.ring-stage', sec), ring = $('.ring', sec), wrap = $('.ring-wrap', sec), cards = $$('.ring-card', sec), N = cards.length;
+    if (!N) return;
+    const axis = ring.dataset.axis || 'y', SPAN = 360 / N;
+    const curEl = $('.ring-cur', sec), titleEl = $('.ring-title', sec), descEl = $('.ring-desc', sec), linkEl = $('.ring-link', sec), subEl = $('.ring-sub', sec), numEl = $('.ring-num-val', sec), dots = $$('.ring-dots button', sec);
+    let rot = 0, user = 0, R = 500, shown = -1, dragging = false, sx = 0, su = 0, moved = 0;
+    function layout() {
+      const c = cards[0], size = axis === 'y' ? c.offsetWidth : c.offsetHeight, gap = isMobile() ? 16 : 44;
+      R = Math.max(size * 0.55, (size + gap) / (2 * Math.sin(Math.PI / N)));
+      ring.style.transform = `translateZ(${(-R).toFixed(1)}px)`;
     }
-    function setText(i) {
-      if (shown === i) return; shown = i; const c = cards[i];
-      curEl.textContent = pad2(i + 1); titleEl.innerHTML = c.dataset.title; descEl.textContent = c.dataset.desc; linkEl.href = c.dataset.href;
+    const range = () => Math.max(1, sec.offsetHeight - stage.offsetHeight);
+    const progress = () => clamp(-sec.getBoundingClientRect().top / range(), 0, 1) * (N - 1) * SPAN;
+    function setShown(i) {
+      if (i === shown) return; shown = i; const c = cards[i];
+      if (curEl) curEl.textContent = pad2(i + 1);
+      if (numEl) numEl.textContent = pad2(i + 1);
+      if (titleEl && c.dataset.title) { titleEl.innerHTML = c.dataset.title; titleEl.classList.remove('swap'); void titleEl.offsetWidth; titleEl.classList.add('swap'); }
+      if (descEl && c.dataset.desc) descEl.textContent = c.dataset.desc;
+      if (linkEl && c.dataset.href) linkEl.href = c.dataset.href;
+      if (subEl && c.dataset.sub) subEl.textContent = c.dataset.sub;
       dots.forEach((b, k) => b.classList.toggle('is-active', k === i));
-      titleEl.classList.remove('swap'); void titleEl.offsetWidth; titleEl.classList.add('swap');
     }
     function frame() {
-      const target = progress();
-      cur += (target - cur) * (reduced ? 1 : 0.14);
-      if (Math.abs(target - cur) < 0.0005) cur = target;
-      if (!started && target > 0.05) { started = true; if (hint) hint.classList.add('is-hidden'); }
-      cards.forEach((c, i) => place(i, i - cur));
-      setText(clamp(Math.round(cur), 0, N - 1));
+      const target = progress() + user;
+      rot += (target - rot) * (reduced ? 1 : 0.12);
+      if (Math.abs(target - rot) < 0.001) rot = target;
+      cards.forEach((c, i) => {
+        const a = (((i * SPAN - rot) % 360) + 540) % 360 - 180;
+        const depth = (1 - Math.cos(a * Math.PI / 180)) / 2;
+        c.style.transform = axis === 'y' ? `rotateY(${a.toFixed(2)}deg) translateZ(${R.toFixed(1)}px)` : `rotateX(${(-a).toFixed(2)}deg) translateZ(${R.toFixed(1)}px)`;
+        c.style.opacity = (1 - depth * 0.9).toFixed(3);
+        c.style.filter = depth > 0.12 ? `blur(${(depth * 6).toFixed(2)}px)` : 'none';
+        c.style.visibility = depth > 0.97 ? 'hidden' : 'visible';
+        c.classList.toggle('is-front', Math.abs(a) < SPAN / 2);
+      });
+      setShown(((Math.round(rot / SPAN) % N) + N) % N);
       requestAnimationFrame(frame);
     }
-    dots.forEach((b, i) => b.addEventListener('click', () => { const r = deckSec.getBoundingClientRect(); scrollTo({ top: scrollY + r.top + range() * i / (N - 1), behavior: reduced ? 'auto' : 'smooth' }); }));
-    cards.forEach((c) => c.addEventListener('click', () => { if (c.classList.contains('is-front')) location.href = c.dataset.href; }));
-    stageEl.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') return; const r = stageEl.getBoundingClientRect(); mx = ((e.clientX - r.left) / r.width - 0.5) * 9; my = ((e.clientY - r.top) / r.height - 0.5) * -7; });
-    stageEl.addEventListener('pointerleave', () => { mx = 0; my = 0; });
-    frame();
-  }
-
-  // ---------- bande de réalisations en perspective ----------
-  const strip = $('.strip');
-  if (strip) {
-    const cards = $$('.strip-card', strip), title = $('#strip-title'), sub = $('#strip-sub');
-    function update() {
-      const vw = strip.clientWidth, mid = strip.getBoundingClientRect().left + vw / 2;
-      let best = null, bestD = 1e9;
-      cards.forEach((c) => {
-        const r = c.getBoundingClientRect(); const d = (r.left + r.width / 2 - mid) / vw;
-        if (!reduced) c.style.transform = `rotateY(${(-d * 26).toFixed(2)}deg) translateZ(${(-Math.abs(d) * 120).toFixed(1)}px)`;
-        if (Math.abs(d) < bestD) { bestD = Math.abs(d); best = c; }
-      });
-      if (best && title && title.dataset.cur !== best.dataset.title) { title.dataset.cur = best.dataset.title; title.innerHTML = best.dataset.title; sub.textContent = best.dataset.sub; }
+    const goTo = (i) => { user = 0; const r = sec.getBoundingClientRect(); scrollTo({ top: scrollY + r.top + range() * i / (N - 1), behavior: reduced ? 'auto' : 'smooth' }); };
+    dots.forEach((b, i) => b.addEventListener('click', () => goTo(i)));
+    const prev = $('.ring-prev', sec), next = $('.ring-next', sec);
+    if (prev) prev.addEventListener('click', () => goTo(Math.max(0, shown - 1)));
+    if (next) next.addEventListener('click', () => goTo(Math.min(N - 1, shown + 1)));
+    if (axis === 'y') {
+      wrap.addEventListener('pointerdown', (e) => { if (e.target.closest('input, button, a')) return; dragging = true; sx = e.clientX; su = user; moved = 0; wrap.setPointerCapture(e.pointerId); });
+      wrap.addEventListener('pointermove', (e) => { if (!dragging) return; const dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx)); user = su - dx * 0.16; });
+      const end = (e) => { if (!dragging) return; dragging = false; if (moved < 6) { const card = e.target.closest('.ring-card'); if (card && card.classList.contains('is-front') && card.dataset.href) location.href = card.dataset.href; } };
+      wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end);
     }
-    strip.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true }); addEventListener('resize', update); update();
-    const sp = $('#strip-prev'), sn = $('#strip-next');
-    const stepW = () => (cards[0] ? cards[0].getBoundingClientRect().width + 28 : 400);
-    if (sp) sp.addEventListener('click', () => strip.scrollBy({ left: -stepW(), behavior: 'smooth' }));
-    if (sn) sn.addEventListener('click', () => strip.scrollBy({ left: stepW(), behavior: 'smooth' }));
-  }
+    addEventListener('resize', layout); layout(); frame();
+  });
 
   // ---------- avant / après ----------
   $$('[data-ba]').forEach((fig) => {

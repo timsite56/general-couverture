@@ -5,7 +5,7 @@ Usage : python3 gen.py  → index.html, pages services, zones, contact, mentions
 import json, os, datetime, re, unicodedata
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-V = "40"
+V = "52"
 
 SITE = dict(name="Général Couverture", tel="06 21 32 37 89", tel_link="+33621323789", url="https://generalcouverture.com",
             ville="Angers", dept="Maine-et-Loire", base="Les Garennes-sur-Loire", hours="Du lundi au samedi, 8h30 – 18h",
@@ -280,39 +280,45 @@ ILLU = {
 # ----------------------------------------------------------------------------- blocs
 def faq_block(items): return "".join(f'<details{" open" if i == 0 else ""}><summary>{q}</summary><p>{a}</p></details>' for i, (q, a) in enumerate(items))
 
-def deck_section():
-    cards = "".join(f'<figure class="deck-card" data-title="{s["ring_title"]}" data-desc="{esc(s["short"])}" data-href="{href(s["slug"] + ".html")}"><img src="/{s["img"]}" alt="{esc(s["title"])}" loading="lazy" draggable="false"><span class="deck-tag label">0{i+1} / 0{len(SERVICES)}</span><figcaption>{s["title"]}<small>{s["short"]}</small></figcaption></figure>' for i, s in enumerate(SERVICES))
-    dots = "".join(f'<button type="button" aria-label="Service {i+1}"{" class=is-active" if i == 0 else ""}>0{i+1}</button>' for i in range(len(SERVICES)))
-    return f'''<section class="deck-section navy" id="services" data-nav="Services" style="--n:{len(SERVICES)}">
-  <div class="deck-stage">
-    <div class="deck-text">
-      <span class="label gold">Nos services — six métiers, une seule exigence</span>
-      <div class="deck-index"><span id="deck-cur">01</span><span class="sep">/</span><span class="tot">0{len(SERVICES)}</span></div>
-      <h2 id="deck-title">{SERVICES[0]["ring_title"]}</h2>
-      <p id="deck-desc">{SERVICES[0]["short"]}</p>
-      <a class="link-u" id="deck-link" href="{href(SERVICES[0]["slug"] + ".html")}">Voir le service</a>
-      <div class="deck-dots">{dots}</div>
-    </div>
-    <div class="deck-wrap"><div class="deck">{cards}</div></div>
-    <div class="deck-hint"><span class="label muted">Faites défiler</span><i></i></div>
+def wire_house():
+    return '<div class="wire" aria-hidden="true"><div class="wire-spin"><i class="w-f"></i><i class="w-b"></i><i class="w-l"></i><i class="w-r"></i><i class="w-rf"></i><i class="w-rb"></i><i class="w-gl"></i><i class="w-gr"></i><i class="w-ch"></i></div></div>'
+
+def ring_section(sid, nav, cls, label, hint, cards, center, caption, axis, n):
+    dots = "".join(f'<button type="button" aria-label="Élément {i+1}"{" class=is-active" if i == 0 else ""}>0{i+1}</button>' for i in range(n))
+    return f'''<section class="ring-section {cls}" id="{sid}" data-nav="{nav}" style="--n:{n}">
+  <div class="ring-stage">
+    <div class="ring-head"><span class="label gold">{label}</span><span class="label muted">{hint}</span></div>
+    <div class="ring-wrap"><div class="ring" data-axis="{axis}">{center}{cards}</div></div>
+    <div class="ring-foot">{caption}<div class="ring-nav"><div class="ring-dots">{dots}</div><div class="ring-arrows"><button type="button" class="ring-prev" aria-label="Précédent">←</button><button type="button" class="ring-next" aria-label="Suivant">→</button></div></div></div>
   </div>
 </section>'''
 
+def services_ring():
+    cards = "".join(f'<figure class="ring-card srv-card" data-title="{s["ring_title"]}" data-desc="{esc(s["short"])}" data-href="{href(s["slug"] + ".html")}"><img src="/{s["img"]}" alt="{esc(s["title"])}" loading="lazy" draggable="false"><span class="ring-tag label">0{i+1}</span><figcaption>{s["title"]}</figcaption></figure>' for i, s in enumerate(SERVICES))
+    caption = f'<div class="ring-caption"><div class="ring-index"><span class="ring-cur">01</span><span class="sep">/</span><span class="tot">0{len(SERVICES)}</span></div><h2 class="ring-title">{SERVICES[0]["ring_title"]}</h2><p class="ring-desc">{SERVICES[0]["short"]}</p><a class="link-u ring-link" href="{href(SERVICES[0]["slug"] + ".html")}">Voir le service</a></div>'
+    return ring_section("services", "Services", "navy", "Nos services — six métiers, une seule exigence", "Faites défiler : les cartes tournent autour de la maquette", cards, wire_house(), caption, "y", len(SERVICES))
+
+METHOD = [("appel", "Vous appelez", "Décrivez votre toiture et le problème. Pour une fuite, nous organisons une intervention rapide."),
+          ("visite", "Visite et diagnostic", "Nous montons sur le toit, nous contrôlons couverture, zinguerie et charpente, photos à l'appui."),
+          ("devis", "Devis détaillé", "Gratuit, chiffré poste par poste. Le prix indiqué est celui que vous payez."),
+          ("travaux", "Travaux et garantie", "Chantier propre, maison hors d'eau chaque soir, garantie décennale sur nos réalisations.")]
+
+def method_ring():
+    cards = "".join(f'<figure class="ring-card method-card" data-title="{t}"><div class="method-illu">{ILLU[k]}</div><figcaption><span class="num">Étape 0{i+1}</span><h3>{t}</h3><p>{d}</p></figcaption></figure>' for i, (k, t, d) in enumerate(METHOD))
+    center = '<div class="ring-num" aria-hidden="true"><span class="ring-num-val">01</span></div>'
+    caption = '<div class="ring-caption"><h2>Simple, clair,<br><span class="h-light">sans surprise.</span></h2><p class="ring-desc">Quatre étapes, toujours les mêmes, du premier appel à la fin du chantier.</p></div>'
+    return ring_section("methode", "Méthode", "cream", "La méthode — quatre étapes", "Faites défiler : les étapes tournent", cards, center, caption, "y", len(METHOD))
+
 def ba_card(slug, after, before, title, sub, caption):
-    return f'''<figure class="strip-card ba" data-ba data-title="{title}" data-sub="{sub}">
+    return f'''<figure class="ring-card ba" data-ba data-title="{title}" data-sub="{sub}">
   <div class="ba-frame"><img src="/{after}" alt="Après : {esc(caption)}" loading="lazy" draggable="false"><div class="ba-before" style="--pos:50%"><img src="/{before}" alt="Avant les travaux" loading="lazy" draggable="false"></div><div class="ba-handle" style="--pos:50%"><span></span></div><input class="ba-range" type="range" min="2" max="98" value="50" aria-label="Comparer avant et après"><span class="ba-tag ba-tag-before">Avant</span><span class="ba-tag ba-tag-after">Après</span></div>
-  <figcaption>{caption}<span>{sub}</span></figcaption>
+  <figcaption>{caption}</figcaption>
 </figure>'''
 
-def strip_section():
+def realisations_wheel():
     cards = "".join(ba_card(*b) for b in BA)
-    for src, title, sub, cap in PHOTOS:
-        cards += f'<figure class="strip-card photo" data-title="{title}" data-sub="{sub}"><div class="photo-frame"><img src="/{src}" alt="{esc(cap)}" loading="lazy" draggable="false"></div><figcaption>{cap}<span>{sub}</span></figcaption></figure>'
-    return f'''<section class="section cream strip-section" id="realisations" data-nav="Réalisations">
-  <div class="strip-head"><div><span class="label gold">Réalisations — avant / après</span></div><p class="label muted">Déplacez le curseur sur chaque photo</p></div>
-  <div class="strip">{cards}</div>
-  <div class="strip-foot"><div class="strip-title"><span class="h-light label" id="strip-sub">{BA[0][4]}</span><h2 id="strip-title">{BA[0][3]}</h2></div><div class="ring-arrows"><button type="button" id="strip-prev" aria-label="Précédent">←</button><button type="button" id="strip-next" aria-label="Suivant">→</button></div></div>
-</section>'''
+    caption = f'<div class="ring-caption"><span class="label gold ring-sub">{BA[0][4]}</span><h2 class="ring-title">{BA[0][3]}</h2><p class="ring-desc">Les « après » sont nos chantiers ; déplacez le curseur pour retrouver l\'état d\'avant.</p></div>'
+    return ring_section("realisations", "Réalisations", "cream", "Réalisations — avant / après", "Faites défiler : la roue tourne, glissez le curseur", cards, "", caption, "x", len(BA))
 
 def services_rows(exclude=None):
     rows, i = [], 0
@@ -345,62 +351,43 @@ def form_block():
   <p class="form-status" role="status"></p>
 </form>'''
 
-# ----------------------------------------------------------------------------- accueil : hero + atelier 3D
-def atelier_panel():
-    tabs = "".join(f'<button type="button" role="tab" data-mode="{m}" aria-selected="{"true" if i == 0 else "false"}"{" class=is-active" if i == 0 else ""}><span>0{i+1}</span><b>{t}</b></button>' for i, (m, t) in enumerate([("matieres", "Matières"), ("coupe", "Coupe"), ("diagnostic", "Diagnostic"), ("entretien", "Entretien")]))
+# ----------------------------------------------------------------------------- accueil : la maquette racontée au défilement
+def experience():
+    labels = "".join(f'<div class="lbl" data-layer="{k}"><span class="dot"></span><span class="tag"><b>{i+1} · {t}</b></span></div>' for i, (k, t, _) in enumerate(LAYERS))
+    hots = "".join(f'<button type="button" class="hs" data-hs="{k}" aria-label="{esc(t)}"><span class="dot">{i+1}</span><span class="tag">{t}</span></button>' for i, (k, t, *_r) in enumerate(HOTSPOTS))
+    hero = f'''<article class="step step-hero" data-kind="hero" data-nav="Accueil"><div class="step-inner">
+      <span class="label gold">Couvreur à Angers — Maine-et-Loire</span>
+      <h1>Votre toiture, <span class="h-light">entre de bonnes mains.</span></h1>
+      <p class="lead"><span class="lead-long">Rénovation, toiture neuve, recherche de fuite, zinguerie : {N} entretient et refait les toits d'Angers depuis vingt ans. Certifié RGE, garantie décennale, devis gratuit.</span><span class="lead-short">Rénovation, toiture neuve, fuite, zinguerie : couvreur certifié RGE à Angers, devis gratuit.</span></p>
+      <div class="btn-row"><a class="btn btn-gold" href="{href("contact.html")}">Demander un devis</a><a class="btn btn-outline" href="#coupe" data-goto="1" data-f="0.2">Découvrir la maquette</a></div>
+      <ul class="hero-facts"><li><strong>20 ans</strong>d'expérience</li><li><strong>500</strong>chantiers</li><li><strong>RGE</strong>certifié</li><li><strong>5,0</strong>sur Google</li></ul>
+    </div></article>'''
+    legend = "".join(f'<li><span class="label">{t}</span><small>{d}</small></li>' for k, t, d in LAYERS)
+    coupe = f'''<article class="step" id="coupe" data-kind="coupe" data-nav="La coupe"><div class="step-inner"><span class="label gold step-num">01 — La coupe</span><h2>Ce qui vous protège vraiment.</h2><p>Une toiture, c'est cinq couches. Faites défiler : la maquette s'ouvre et chaque couche prend sa place, de la charpente à la couverture.</p><ol class="layer-legend">{legend}</ol><a class="link-u" href="{href("pose-toiture-neuve.html")}">Pose de toiture neuve</a></div></article>'''
+    hs = ""
+    for i, (k, t, where, sym, fix, page, lbl) in enumerate(HOTSPOTS):
+        hs += f'''<article class="step step-hs" data-kind="hs" data-hs="{k}" data-nav="Diagnostic"><div class="step-inner"><span class="label gold step-num">02 — Le diagnostic · {i+1}/6</span><span class="label muted where">{where}</span><h2>{t}</h2><p><b>Le symptôme.</b> {sym}</p><p><b>Notre intervention.</b> {fix}</p><a class="link-u" href="{href(page + ".html")}">{lbl}</a><span class="after-hint label muted">Continuez à défiler : la réparation apparaît sur la maquette</span></div></article>'''
+    entretien = f'''<article class="step" data-kind="entretien" data-nav="Entretien"><div class="step-inner"><span class="label gold step-num">03 — L'entretien</span><h2>Le versant nord, celui qu'on ne voit pas.</h2><p>Invisible depuis la rue, la mousse retient l'eau toute l'année, soulève les tuiles et bouche les gouttières. Faites défiler : démoussage, traitement, puis hydrofuge.</p><div class="clean-meter"><span class="label">Nettoyage du versant nord</span><b class="clean-val">0 %</b></div><a class="link-u" href="{href("entretien-demoussage.html")}">Entretien et démoussage</a></div></article>'''
     chips = "".join(f'<button type="button" class="chip{" is-active" if i == 0 else ""}" data-mat="{k}">{t}</button>' for i, (k, t, _, _, _) in enumerate(MATS))
     infos = ""
     for i, (k, t, sub, desc, facts) in enumerate(MATS):
         dl = "".join(f'<div><dt>{a}</dt><dd>{b}</dd></div>' for a, b in facts)
         infos += f'<div class="mat-info" data-mat-info="{k}"{"" if i == 0 else " hidden"}><span class="label muted">{sub}</span><h3>{t}</h3><p>{desc}</p><dl class="facts">{dl}</dl></div>'
-    layers = "".join(f'<button type="button" data-layer="{k}"><i>{i+1}</i>{t}</button>' for i, (k, t, _) in enumerate(LAYERS))
-    linfos = '<div data-layer-info="none"><p>Touchez une couche pour la mettre en avant et comprendre son rôle.</p></div>'
-    linfos += "".join(f'<div data-layer-info="{k}" hidden><h3>{i+1} · {t}</h3><p>{d}</p></div>' for i, (k, t, d) in enumerate(LAYERS))
-    hsb = "".join(f'<button type="button" data-hs="{k}"{" class=is-active" if i == 0 else ""}><b>0{i+1}</b><span>{t}</span></button>' for i, (k, t, *_r) in enumerate(HOTSPOTS))
-    hsi = ""
-    for i, (k, t, where, sym, fix, page, lbl) in enumerate(HOTSPOTS):
-        hsi += f'<div class="hs-info" data-hs-info="{k}"{"" if i == 0 else " hidden"}><span class="label muted">{where}</span><h3>{t}</h3><p><b>Le symptôme.</b> {sym}</p><p><b>Notre intervention.</b> {fix}</p><a class="link-u" href="{href(page + ".html")}">{lbl}</a></div>'
-    return f'''<div class="atelier" id="atelier" aria-label="L'atelier 3D">
-      <div class="atelier-head"><div><span class="label gold">L'atelier 3D</span><strong>Comprenez votre toiture</strong></div><span class="label muted hint">Glissez pour pivoter</span></div>
-      <div class="atelier-tabs" role="tablist">{tabs}</div>
-      <div class="atelier-body">
-        <div class="atelier-pane" data-pane="matieres"><p class="pane-intro">Comparez quatre couvertures sur la même maison, pente de 35°.</p><div class="chips">{chips}</div>{infos}<p class="note">Maquette illustrative : le matériau, la pente et la pose se valident sur place, avec nous.</p></div>
-        <div class="atelier-pane" data-pane="coupe" hidden><p class="pane-intro">Une toiture, c'est cinq couches. Écartez-les et touchez chacune.</p><div class="slider-head"><span class="label">Vue éclatée</span></div><input class="slider" id="explode" type="range" min="0" max="100" value="65" aria-label="Écarter les couches"><div class="layers">{layers}</div>{linfos}<button type="button" class="chip" id="replay">Rejouer la pose ↻</button></div>
-        <div class="atelier-pane" data-pane="diagnostic" hidden><p class="pane-intro">Six désordres fréquents sur une maison angevine. Touchez un point de la maquette ou un symptôme.</p><div class="hs-list">{hsb}</div>{hsi}<button type="button" class="chip hs-after" id="hs-after" data-before="Voir après intervention" data-after="Revoir le désordre">Voir après intervention</button></div>
-        <div class="atelier-pane" data-pane="entretien" hidden><p class="pane-intro">Faites avancer le nettoyage du versant nord, celui qu'on ne voit pas depuis la rue.</p><div class="slider-head"><span class="label">Nettoyage</span><span class="label gold" id="clean-val">0 %</span></div><input class="slider" id="clean" type="range" min="0" max="100" value="0" aria-label="Avancement du nettoyage"><div class="slider-legend"><span>Encrassé</span><span>Nettoyé + hydrofuge</span></div><p>Démoussage manuel ou basse pression, traitement curatif, puis hydrofuge : la couverture retrouve sa teinte et gagne des années de vie. À renouveler tous les quatre à six ans.</p><a class="link-u" href="{href("entretien-demoussage.html")}">Entretien et démoussage</a></div>
-      </div>
-    </div>'''
-
-def build_index():
-    labels = "".join(f'<div class="lbl" data-layer="{k}"><span class="dot"></span><span class="tag"><b>{i+1} · {t}</b></span></div>' for i, (k, t, _) in enumerate(LAYERS))
-    hots = "".join(f'<button type="button" class="hs" data-hs="{k}" aria-label="{esc(t)}"><span class="dot">{i+1}</span><span class="tag">{t}</span></button>' for i, (k, t, *_r) in enumerate(HOTSPOTS))
-    experience = f'''<section class="experience" id="experience" aria-label="Votre toiture en 3D" data-nav="Accueil">
-  <div class="stage" id="stage" data-mode="matieres">
+    matieres = f'''<article class="step step-mat" data-kind="matieres" data-nav="Matières"><div class="step-inner"><span class="label gold step-num">04 — Les matières</span><h2>Chaque toiture a son caractère.</h2><p>Quatre couvertures sur la même maison, pente de 35° : la maquette change toute seule, ou choisissez.</p><div class="chips">{chips}</div>{infos}<div class="btn-row step-cta"><a class="btn btn-gold" href="{href("contact.html")}">Demander un devis gratuit</a></div></div></article>'''
+    stage = f'''<div class="stage" id="stage" data-kind="hero">
     <div class="stage-grid" aria-hidden="true"></div>
     <canvas id="scene" aria-hidden="true"></canvas>
     <div class="labels" id="labels">{labels}{hots}</div>
-    <div class="hero-ui">
-      <span class="label gold">Couvreur à Angers — Maine-et-Loire</span>
-      <h1>Votre toiture, <span class="h-light">entre de bonnes mains.</span></h1>
-      <p class="lead"><span class="lead-long">Rénovation, toiture neuve, recherche de fuite, zinguerie : {N} entretient et refait les toits d'Angers depuis vingt ans. Certifié RGE, garantie décennale, devis gratuit.</span><span class="lead-short">Rénovation, toiture neuve, fuite, zinguerie : couvreur certifié RGE à Angers, devis gratuit.</span></p>
-      <div class="btn-row"><a class="btn btn-gold" href="{href("contact.html")}">Demander un devis</a><a class="btn btn-outline" id="explore" href="#atelier">Explorer la maquette 3D</a></div>
-      <ul class="hero-facts"><li><strong>20 ans</strong>d'expérience</li><li><strong>500</strong>chantiers</li><li><strong>RGE</strong>certifié</li><li><strong>5,0</strong>sur Google</li></ul>
-    </div>
-    {atelier_panel()}
-    <div class="scroll-hint"><span class="label muted">Faites défiler pour entrer dans l'atelier</span><span></span></div>
-    <div class="stage-ui"><span class="label muted stage-hint">Maquette 3D interactive · glissez pour pivoter</span></div>
+    <div class="m-caption" id="m-caption"></div>
+    <div class="stage-ui"><span class="label" id="stage-counter">01 / 05</span><span class="label muted stage-hint">Glissez pour pivoter la maquette</span></div>
     <div class="stage-loading" id="loader"><div><span></span></div></div>
-  </div>
+  </div>'''
+    return f'''<section class="experience" id="experience" aria-label="Votre toiture en 3D" data-nav="Accueil">
+  <div class="steps">{hero}{coupe}{hs}{entretien}{matieres}</div>
+  {stage}
 </section>'''
-    steps = [("appel", "Vous appelez", "Décrivez votre toiture et le problème. Pour une fuite, nous organisons une intervention rapide."),
-             ("visite", "Visite et diagnostic", "Nous montons sur le toit, nous contrôlons couverture, zinguerie et charpente, photos à l'appui."),
-             ("devis", "Devis détaillé", "Gratuit, chiffré poste par poste. Le prix indiqué est celui que vous payez."),
-             ("travaux", "Travaux et garantie", "Chantier propre, maison hors d'eau chaque soir, garantie décennale sur nos réalisations.")]
-    items = "".join(f'<li class="reveal" style="--i:{i}">{ILLU[k]}<span class="num">Étape 0{i+1}</span><h3>{t}</h3><p>{d}</p></li>' for i, (k, t, d) in enumerate(steps))
-    method = f'''<section class="section cream" id="methode" data-nav="Méthode"><div class="wrap">
-  <div class="section-head reveal"><div><span class="label gold">La méthode</span><h2>Simple, clair,<br><span class="h-light">sans surprise.</span></h2></div><p>Quatre étapes, toujours les mêmes, du premier appel à la fin du chantier.</p></div>
-  <ol class="method">{items}</ol>
-</div></section>'''
+
+def build_index():
     about = f'''<section class="section navy" id="apropos" data-nav="L'entreprise"><div class="wrap about-grid">
   <div class="about-media reveal"><img src="/images/apropos.webp" alt="Couvreur de Général Couverture sur une toiture en ardoise à Angers" loading="lazy" width="750" height="938"></div>
   <div class="about-text reveal" style="--i:1"><span class="label gold">L'entreprise</span><h2 style="margin-top:1.2em">Une entreprise angevine,<br><span class="h-light">un couvreur passionné.</span></h2>
@@ -416,7 +403,7 @@ def build_index():
     faq = f'''<section class="section navy" id="faq" data-nav="Questions"><div class="wrap"><div class="section-head reveal"><div><span class="label gold">Questions fréquentes</span><h2>Vos questions,<br><span class="h-light">nos réponses.</span></h2></div></div><div class="faq reveal" style="--i:1">{faq_block(FAQ_HOME)}</div></div></section>'''
     contact = f'''<section class="section cream" id="contact" data-nav="Contact"><div class="wrap contact-grid"><div class="reveal"><span class="label gold">Contact</span><h2 style="margin-top:1.2em">Parlons de<br><span class="h-light">votre toiture.</span></h2><a class="contact-phone" href="tel:{SITE["tel_link"]}">{SITE["tel"]}</a><ul class="info-list"><li><strong>Horaires</strong><span>{SITE["hours"]}<br>Urgence fuite : appelez, nous nous organisons.</span></li><li><strong>Secteur</strong><span>Angers, son agglomération et tout le Maine-et-Loire</span></li><li><strong>Devis</strong><span>Gratuit, après visite sur site, chiffré poste par poste</span></li><li><strong>Garanties</strong><span>Certifié RGE · Garantie décennale</span></li></ul></div>{form_block()}</div></section>'''
     faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQ_HOME]}
-    body = experience + deck_section() + method + about + strip_section() + reviews + zones + faq + contact
+    body = experience() + services_ring() + method_ring() + about + realisations_wheel() + reviews + zones + faq + contact
     extra = jsonld(ORG) + "\n" + jsonld(faq_ld) + '\n<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>'
     return layout("Couvreur à Angers — Général Couverture | Rénovation, toiture neuve, zinguerie", "Couvreur certifié RGE à Angers et dans le Maine-et-Loire : rénovation et réparation de toiture, toiture neuve, démoussage, zinguerie, Velux, peinture de toiture. Devis gratuit au 06 21 32 37 89.", body, "index.html", extra, f'<script type="module" src="/js/app.js?v={V}"></script>')
 

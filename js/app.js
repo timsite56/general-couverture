@@ -3,7 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-// Général Couverture — l'atelier 3D : maquette de maison, 4 modes (matières, coupe, diagnostic, entretien)
+// Général Couverture — la maquette 3D racontée au défilement : hero, coupe, diagnostic (6 désordres), entretien, matières
 // ------------------------------------------------------------------ helpers
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -314,13 +314,16 @@ for (let i = 0; i < RN; i++) { rp[i * 3] = -8 + Math.random() * 16; rp[i * 3 + 1
 const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rp, 3));
 const rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: 0xa9cbee, size: 0.07, transparent: true, opacity: 0, depthWrite: false })); rain.visible = false; world.add(rain);
 
-// ------------------------------------------------------------------ données de l'atelier
+// ------------------------------------------------------------------ chapitres (pilotés par le défilement)
+const steps = $$('.step');
+const NST = steps.length;
+const KIND = steps.map((s) => s.dataset.kind);
+const HSID = steps.map((s) => s.dataset.hs || null);
 const KEYS = {
-  hero: { az: 36, el: 19, dist: 44, tgt: [0, 3.2, 0] },
-  matieres: { az: 30, el: 24, dist: 31, tgt: [0, 3.4, 0] },
+  hero: { az: 36, el: 19, dist: 35, tgt: [0, 3.2, 0] },
   coupe: { az: 26, el: 30, dist: 30, tgt: [0, 5.9, 0.7] },
-  diagnostic: { az: 42, el: 28, dist: 31, tgt: [0, 3.6, 0] },
   entretien: { az: 160, el: 30, dist: 28, tgt: [0, 5.0, -0.9] },
+  matieres: { az: 32, el: 24, dist: 31, tgt: [0, 3.4, 0] },
 };
 const HS = {
   tuile: { cam: { az: 20, el: 20, dist: 16, tgt: [-0.9, 5.3, 2.7] }, anchor: slopeToWorld(true, -0.9, 2.3, 0.3), front: true, gaps: [{ x: -0.9, v: 2.3, r: 0.17 }] },
@@ -330,7 +333,7 @@ const HS = {
   velux: { cam: { az: 12, el: 22, dist: 15, tgt: [-2.6, 5.1, 2.6] }, anchor: slopeToWorld(true, VELUX.x, VELUX.v, 0.4), front: true, gaps: [] },
   teinte: { cam: { az: 30, el: 24, dist: 22, tgt: [0.4, 5.0, 2.0] }, anchor: slopeToWorld(true, -3.7, 0.95, 0.3), front: true, gaps: [] },
 };
-const HS_ORDER = Object.keys(HS);
+const stepKey = (i) => (KIND[i] === 'hs' ? HS[HSID[i]].cam : KEYS[KIND[i]] || KEYS.hero);
 const layerLabels = {
   couverture: { x: -4.3, v: 3.5, lift: TILE.lift },
   liteaux: { x: -2.3, v: 2.2, lift: 1.65 },
@@ -338,65 +341,59 @@ const layerLabels = {
   isolation: { x: 4.0, v: 1.8, lift: 0.5 },
   charpente: { x: -4.8, v: 0.7, lift: 0 },
 };
+const CHAP = { hero: 1, coupe: 2, hs: 3, entretien: 4, matieres: 5 };
+const MAT_ORDER = ['tuile', 'beton', 'ardoise', 'zinc'];
 
 // ------------------------------------------------------------------ état
-const st = { p: 0, build: 0, explode: 0, moss: 0, fade: 0, rain: 0, az: KEYS.hero.az, el: KEYS.hero.el, dist: KEYS.hero.dist, tgt: V3(...KEYS.hero.tgt), userAz: 0, parAz: 0, parEl: 0, sx: 0, sy: 0 };
-let matMode = 'tuile', mode = 'matieres', atelier = false, hs = null, hsManual = false, hsTimer = 0, after = false;
-let explodeUI = 0.75, cleanUI = 0, focusLayer = null, buildAnim = true, buildStart = 0, dirty = true, idle = 0;
-const alphas = { couverture: 1, liteaux: 1, ecran: 1, isolation: 1, charpente: 1 };
+const _v = new THREE.Vector3();
+const st = { cp: 0, build: 0, explode: 0, moss: 0, fade: 0, rain: 0, az: KEYS.hero.az, el: KEYS.hero.el, dist: KEYS.hero.dist, tgt: V3(...KEYS.hero.tgt), userAz: 0, parAz: 0, parEl: 0, sy: 0 };
+let matMode = 'tuile', matManual = false, buildAnim = true, buildStart = 0, dirty = true, idle = 0, curStep = -1;
 let lastBuild = -1, lastExplode = -1, lastMoss = -1, lastFade = -1, lastGapsKey = '';
 let stageW = 1, stageH = 1;
 
-const layerMats = {
-  couverture: [ridgeTiles.material, M.zinc, M.zincNew, M.veluxFrame, M.loose, M.cap, M.chimney],
-  liteaux: [], ecran: [], isolation: [], charpente: [M.timber, M.rafter],
-};
-for (const sl of slopes) {
-  layerMats.couverture.push(sl.tiles.material, sl.slates.material, sl.zMat, sl.blobs.material);
-  if (sl.velux) layerMats.couverture.push(sl.velux.userData.glass.material);
-  layerMats.liteaux.push(sl.batMat, sl.deck.material);
-  layerMats.ecran.push(sl.und.material);
-  layerMats.isolation.push(sl.ins.material);
+// Progression : un chapitre commence quand le haut de son texte franchit le milieu de l'écran
+function readScroll() {
+  const line = innerHeight * 0.5; let cp = 0;
+  for (let i = 0; i < NST; i++) {
+    const r = steps[i].getBoundingClientRect();
+    if (r.top <= line) cp = i + clamp((line - r.top) / Math.max(1, r.height + (i === NST - 1 ? innerHeight * 0.25 : 0)));
+  }
+  st.cp = Math.min(cp, NST - 0.001);
 }
-function setAlpha(mat, a) {
-  const tr = a < 0.995;
-  if (mat.transparent !== tr) { mat.transparent = tr; mat.needsUpdate = true; }
-  mat.opacity = a; mat.depthWrite = a > 0.5;
-}
-
-// ------------------------------------------------------------------ cibles par mode
-function activeGaps() {
-  if (mode !== 'diagnostic' || !atelier) return null;
-  const g = [];
-  for (const id of HS_ORDER) { if (after && hs === id) continue; g.push(...HS[id].gaps); }
-  return g;
+function chapterWeight(i, cp) {
+  const f = cp - i; if (f < 0 || f > 1) return 0;
+  const fin = i === 0 ? 1 : smooth(f / 0.12);
+  const fout = i === NST - 1 ? 1 : 1 - smooth((f - 0.88) / 0.12);
+  return fin * fout;
 }
 function targets() {
-  const T = { moss: 0, fade: 0, explode: 0, rain: 0, defects: false, key: KEYS.matieres };
-  if (mode === 'coupe') { T.explode = explodeUI; T.key = KEYS.coupe; }
-  else if (mode === 'diagnostic') {
-    T.defects = true; T.key = hs ? HS[hs].cam : KEYS.diagnostic;
-    T.moss = (after && hs === 'mousse') ? 0 : 0.6;
-    T.fade = (after && (hs === 'teinte' || hs === 'usure')) ? 0 : 0.45;
-    T.rain = (hs === 'tuile' && !after) ? 1 : 0;
-  } else if (mode === 'entretien') { T.moss = 1 - cleanUI; T.key = KEYS.entretien; }
-  if (!atelier) { T.moss = 0; T.fade = 0; T.explode = 0; T.rain = 0; T.defects = false; }
+  const cp = st.cp, ci = Math.min(NST - 1, Math.floor(cp)), cf = cp - ci, kind = KIND[ci];
+  const T = { moss: 0, fade: 0, explode: 0, rain: 0, defects: false, hs: null, after: false, sheen: 0, clean: 0, mat: null, ci, cf, kind };
+  if (kind === 'coupe') T.explode = smooth(cf / 0.62);
+  else if (kind === 'hs') {
+    T.defects = true; T.hs = HSID[ci]; T.after = cf > 0.56;
+    T.moss = (T.after && T.hs === 'mousse') ? 0 : 0.6;
+    T.fade = (T.after && (T.hs === 'teinte' || T.hs === 'usure')) ? 0 : 0.45;
+    T.rain = (T.hs === 'tuile' && !T.after) ? 1 : 0;
+  } else if (kind === 'entretien') { T.clean = smooth((cf - 0.08) / 0.7); T.moss = 1 - T.clean; T.sheen = smooth((cf - 0.72) / 0.25); }
+  else if (kind === 'matieres') T.mat = MAT_ORDER[Math.min(3, Math.floor(cf * 4.4))];
+  const ki = clamp(cp - 0.5, 0, NST - 1), kb = Math.floor(ki), kf = smooth((ki - kb - 0.25) / 0.5);
+  const a = stepKey(Math.min(kb, NST - 1)), b = stepKey(Math.min(kb + 1, NST - 1));
+  T.az = lerp(a.az, b.az, kf); T.el = lerp(a.el, b.el, kf); T.dist = lerp(a.dist, b.dist, kf);
+  T.tgt = _v.fromArray(a.tgt).lerp(_s.fromArray(b.tgt), kf);
+  if (kind === 'matieres') T.az += cf * 40;
   return T;
 }
-
-// ------------------------------------------------------------------ UI
-const panes = $$('.atelier-pane'), tabs = $$('[data-mode]');
-function setMode(m) {
-  mode = m; stage.dataset.mode = m; dirty = true;
-  tabs.forEach((b) => { const on = b.dataset.mode === m; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
-  panes.forEach((p) => { p.hidden = p.dataset.pane !== m; });
-  if (m === 'diagnostic') { if (!hs) setHS(HS_ORDER[0], false); hsTimer = 0; }
-  if (m === 'coupe' && focusLayer === null && explodeUI < 0.05) { explodeUI = 0.75; const r = $('#explode'); if (r) r.value = explodeUI * 100; }
+function activeGaps(T) {
+  if (!T.defects) return null;
+  const g = [];
+  for (const id in HS) { if (T.after && T.hs === id) continue; g.push(...HS[id].gaps); }
+  return g;
 }
-tabs.forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 
-function setMat(m) {
-  matMode = m; const cfg = MATS[m];
+// ------------------------------------------------------------------ interface
+function setMat(m, manual) {
+  matMode = m; if (manual) matManual = true; const cfg = MATS[m];
   $$('[data-mat]').forEach((b) => b.classList.toggle('is-active', b.dataset.mat === m));
   $$('[data-mat-info]').forEach((d) => { d.hidden = d.dataset.matInfo !== m; });
   for (const sl of slopes) {
@@ -415,38 +412,25 @@ function setMat(m) {
   if (cfg.ridge) ridgeTiles.material.color.setHSL(...cfg.ridge).convertSRGBToLinear();
   lastMoss = -1; dirty = true;
 }
-$$('[data-mat]').forEach((b) => b.addEventListener('click', () => setMat(b.dataset.mat)));
-
-const explodeEl = $('#explode');
-if (explodeEl) explodeEl.addEventListener('input', () => { explodeUI = explodeEl.value / 100; });
-$$('[data-layer]').forEach((b) => b.addEventListener('click', () => {
-  focusLayer = focusLayer === b.dataset.layer ? null : b.dataset.layer;
-  $$('[data-layer]').forEach((x) => x.classList.toggle('is-active', x.dataset.layer === focusLayer));
-  $$('[data-layer-info]').forEach((d) => { d.hidden = d.dataset.layerInfo !== (focusLayer || 'none'); });
-  if (focusLayer && explodeUI < 0.3) { explodeUI = 0.75; if (explodeEl) explodeEl.value = 75; }
-}));
-const replayEl = $('#replay');
-if (replayEl) replayEl.addEventListener('click', () => { st.build = 0; buildStart = clock.elapsedTime; buildAnim = true; });
-
-const afterBtn = $('#hs-after');
-function setHS(id, manual) {
-  hs = id; after = false; hsTimer = 0; if (manual) hsManual = true;
-  $$('[data-hs]').forEach((b) => b.classList.toggle('is-active', b.dataset.hs === id));
-  $$('[data-hs-info]').forEach((d) => { d.hidden = d.dataset.hsInfo !== id; });
-  $$('.hs').forEach((el) => el.classList.toggle('is-active', el.dataset.hs === id));
-  if (afterBtn) { afterBtn.classList.remove('is-active'); afterBtn.textContent = afterBtn.dataset.before; }
-  dirty = true;
+function scrollToStep(i, f = 0.5) {
+  const r = steps[i].getBoundingClientRect();
+  scrollTo({ top: scrollY + r.top - innerHeight * 0.5 + f * r.height + 2, behavior: reduced ? 'auto' : 'smooth' });
 }
-$$('[data-hs]').forEach((b) => b.addEventListener('click', () => setHS(b.dataset.hs, true)));
-$$('.hs').forEach((el) => el.addEventListener('click', () => setHS(el.dataset.hs, true)));
-if (afterBtn) afterBtn.addEventListener('click', () => { after = !after; hsManual = true; afterBtn.classList.toggle('is-active', after); afterBtn.textContent = after ? afterBtn.dataset.after : afterBtn.dataset.before; dirty = true; });
-
-const cleanEl = $('#clean'), cleanVal = $('#clean-val');
-if (cleanEl) cleanEl.addEventListener('input', () => { cleanUI = cleanEl.value / 100; if (cleanVal) cleanVal.textContent = Math.round(cleanUI * 100) + ' %'; });
-
-const explore = $('#explore');
-function scrollToAtelier() { const r = exp.getBoundingClientRect(); const range = r.height - stageH; scrollTo({ top: scrollY + r.top + range * 0.5, behavior: reduced ? 'auto' : 'smooth' }); }
-if (explore) explore.addEventListener('click', (e) => { e.preventDefault(); scrollToAtelier(); });
+document.addEventListener('click', (e) => {
+  const mat = e.target.closest('[data-mat]'); if (mat) { setMat(mat.dataset.mat, true); return; }
+  const go = e.target.closest('[data-goto]'); if (go) { e.preventDefault(); scrollToStep(+go.dataset.goto, +(go.dataset.f || 0.5)); return; }
+  const dot = e.target.closest('.hs'); if (dot) { const i = HSID.indexOf(dot.dataset.hs); if (i >= 0) scrollToStep(i, 0.2); }
+});
+const mcap = $('#m-caption'), counterEl = $('#stage-counter');
+function showStep(ci) {
+  if (ci === curStep) return;
+  const prevKind = curStep >= 0 ? KIND[curStep] : null; curStep = ci;
+  steps.forEach((s, i) => s.classList.toggle('is-current', i === ci));
+  if (mcap) { mcap.innerHTML = steps[ci].querySelector('.step-inner').innerHTML; mcap.classList.remove('swap'); void mcap.offsetWidth; mcap.classList.add('swap'); mcap.scrollTop = 0; $$('[data-mat]', mcap).forEach((b) => b.classList.toggle('is-active', b.dataset.mat === matMode)); $$('[data-mat-info]', mcap).forEach((d) => { d.hidden = d.dataset.matInfo !== matMode; }); }
+  if (counterEl) counterEl.textContent = `0${CHAP[KIND[ci]] || 1} / 05`;
+  stage.dataset.kind = KIND[ci];
+  if (prevKind === 'matieres' && KIND[ci] !== 'matieres') { matManual = false; if (matMode !== 'tuile') setMat('tuile'); }
+}
 
 // orbite à la main + parallaxe souris
 let dragging = false, lastX = 0;
@@ -464,22 +448,18 @@ addEventListener('pointercancel', () => { dragging = false; });
 // ------------------------------------------------------------------ étiquettes projetées
 const labelEls = $$('.lbl[data-layer]').map((el) => ({ el, cfg: layerLabels[el.dataset.layer] }));
 const hsEls = $$('.hs').map((el) => ({ el, cfg: HS[el.dataset.hs] }));
-const _v = new THREE.Vector3();
+const _w = new THREE.Vector3();
 function placeLabel(el, worldPos, opacity, flipAt = 0.52) {
-  _v.copy(worldPos).project(camera);
-  const x = (_v.x + 1) / 2 * stageW, y = (1 - _v.y) / 2 * stageH;
+  _w.copy(worldPos).project(camera);
+  const x = (_w.x + 1) / 2 * stageW, y = (1 - _w.y) / 2 * stageH;
   const flip = x > stageW * flipAt;
   el.classList.toggle('is-flipped', flip);
   el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(${flip ? '-100%' : '0'}, -50%) translate(${flip ? '6px' : '-6px'}, 0)`;
-  const op = (_v.z < 1 ? opacity : 0);
+  const op = (_w.z < 1 ? opacity : 0);
   el.style.opacity = op.toFixed(2); el.style.pointerEvents = op > 0.5 ? 'auto' : 'none';
 }
 
-// ------------------------------------------------------------------ taille + progression
-function readScroll() {
-  const r = exp.getBoundingClientRect(); const range = Math.max(1, r.height - stageH);
-  st.p = clamp(-r.top / range);
-}
+// ------------------------------------------------------------------ taille
 function resize() {
   const r = stage.getBoundingClientRect();
   stageW = Math.max(1, Math.round(r.width)); stageH = Math.max(1, Math.round(r.height));
@@ -515,50 +495,42 @@ function applyBuild(build, explode, gaps) {
   }
   const tr = easeOut(win(build, 0.93, 0.07)); ridge.visible = tr > 0.001; ridge.scale.x = Math.max(tr, 0.001); ridge.position.y = explode * TILE.lift;
   const tg = easeOut(win(build, 0.88, 0.1)); gutters.visible = tg > 0.001; gutters.scale.x = Math.max(tg, 0.001);
-  flashing.visible = build > 0.96; chimney.visible = true;
+  flashing.visible = build > 0.96;
   looseTile.position.set(-0.9, 2.0 + explode * TILE.lift * sinA, 0.1 + explode * TILE.lift * cosA);
 }
 
 // ------------------------------------------------------------------ boucle
 const clock = new THREE.Clock();
 let firstFrame = true;
+const cleanEls = $$('.clean-val');
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05), time = clock.elapsedTime;
   readScroll();
-  const wasAtelier = atelier; atelier = st.p > 0.24;
-  if (atelier !== wasAtelier) { stage.classList.toggle('is-atelier', atelier); dirty = true; }
-  const heroK = 1 - smooth(st.p / 0.2), panelK = smooth((st.p - 0.2) / 0.18);
-  stage.style.setProperty('--hero', heroK.toFixed(3)); stage.style.setProperty('--panel', panelK.toFixed(3));
-  stage.classList.toggle('hero-off', heroK < 0.4);
-
-  // montage de la maquette (intro + « rejouer la pose »)
   if (buildAnim) { st.build = reduced ? 1 : clamp((time - buildStart) / 3.2); if (st.build >= 1) buildAnim = false; }
-
   const T = targets();
+  showStep(T.ci);
+  if (T.mat && !matManual && T.mat !== matMode) setMat(T.mat);
   const k = 1 - Math.exp(-dt * 6), kc = 1 - Math.exp(-dt * 4), km = 1 - Math.exp(-dt * 3.5);
   st.explode = lerp(st.explode, T.explode, k);
   st.moss = lerp(st.moss, T.moss, km);
   st.fade = lerp(st.fade, T.fade, km);
   st.rain = lerp(st.rain, T.rain, k);
-
-  // caméra : du hero (maison à droite) vers le mode choisi
-  const tk = smooth((st.p - 0.1) / 0.3), H = KEYS.hero, K = T.key;
-  const az = lerp(H.az, K.az, tk), el = lerp(H.el, K.el, tk), dist = lerp(H.dist, K.dist, tk);
-  const tgt = _p.fromArray(H.tgt).lerp(_v.fromArray(K.tgt), tk);
-  st.az = lerp(st.az, az, kc); st.el = lerp(st.el, el, kc); st.dist = lerp(st.dist, dist, kc); st.tgt.lerp(tgt, kc);
+  st.az = lerp(st.az, T.az, kc); st.el = lerp(st.el, T.el, kc); st.dist = lerp(st.dist, T.dist, kc); st.tgt.lerp(T.tgt, kc);
   idle += dt; if (!dragging && idle > 5) st.userAz *= 0.985;
+
+  // caméra : la maison remonte sur mobile (la légende occupe le bas de l'écran)
   const mobile = isMobile();
-  const sxT = mobile ? 0 : lerp(0.3, 0.17, tk), syT = mobile ? lerp(0.31, 0.22, tk) : lerp(0.04, 0.02, tk);
-  st.sx = lerp(st.sx, sxT, kc); st.sy = lerp(st.sy, syT, kc);
-  camera.setViewOffset(stageW, stageH, -st.sx * stageW, st.sy * stageH, stageW, stageH);
-  const orbit = (!atelier && !reduced) ? Math.sin(time * 0.22) * 2.5 : 0;
+  const syT = mobile ? (T.kind === 'hero' ? 0.3 : 0.22) : 0;
+  st.sy = lerp(st.sy, syT, kc);
+  camera.setViewOffset(stageW, stageH, 0, st.sy * stageH, stageW, stageH);
+  const orbit = (T.kind === 'hero' && !reduced) ? Math.sin(time * 0.22) * 2.5 : 0;
   const azR = deg(st.az + st.userAz + st.parAz + orbit), elR = deg(st.el + st.parEl);
-  const dd = st.dist * clamp(1.05 / camera.aspect, 1, 2.4) * (mobile ? lerp(0.9, 0.78, tk) : 1);
+  const dd = st.dist * clamp(1.05 / camera.aspect, 1, 2.4) * (mobile ? (T.kind === 'hero' ? 0.9 : 0.8) : 1);
   camera.position.set(st.tgt.x + dd * Math.sin(azR) * Math.cos(elR), st.tgt.y + dd * Math.sin(elR), st.tgt.z + dd * Math.cos(azR) * Math.cos(elR));
   camera.lookAt(st.tgt);
 
   // géométrie : montage, éclaté, tuiles manquantes
-  const gaps = activeGaps(), gapsKey = gaps ? gaps.length + (after ? 'a' : '') + (hs || '') : '';
+  const gaps = activeGaps(T), gapsKey = gaps ? gaps.length + (T.after ? 'a' : '') + (T.hs || '') : '';
   if (dirty || Math.abs(st.build - lastBuild) > 1e-4 || Math.abs(st.explode - lastExplode) > 1e-4 || gapsKey !== lastGapsKey) {
     applyBuild(st.build, st.explode, gaps); lastBuild = st.build; lastExplode = st.explode; lastGapsKey = gapsKey;
     for (const sl of slopes) layoutBlobs(sl, st.explode, st.moss);
@@ -568,19 +540,11 @@ function tick() {
     for (const sl of slopes) { recolor(sl, st.moss, st.fade); layoutBlobs(sl, st.explode, st.moss); }
     lastMoss = st.moss; lastFade = st.fade;
   }
-  // hydrofuge : la couverture propre reprend un léger satiné
-  const sheen = mode === 'entretien' && atelier ? smooth((cleanUI - 0.7) / 0.3) : 0;
-  for (const sl of slopes) { const mesh = activeMesh(sl); if (mesh) mesh.material.roughness = lerp(MATS[matMode].rough || 0.85, 0.5, sheen); }
+  for (const sl of slopes) { const mesh = activeMesh(sl); if (mesh) mesh.material.roughness = lerp(MATS[matMode].rough || 0.85, 0.5, T.sheen); }
+  if (T.kind === 'entretien') { const txt = Math.round(T.clean * 100) + ' %'; cleanEls.forEach((e) => { if (e.textContent !== txt) e.textContent = txt; }); $$('.clean-val', mcap || document).forEach((e) => { if (e.textContent !== txt) e.textContent = txt; }); }
 
-  // coupe : couche mise en avant
-  for (const name in alphas) {
-    const target = (mode === 'coupe' && atelier && focusLayer) ? (focusLayer === name ? 1 : 0.1) : 1;
-    const a = lerp(alphas[name], target, k);
-    if (Math.abs(a - alphas[name]) > 1e-4) { alphas[name] = a; for (const mat of layerMats[name]) setAlpha(mat, a); }
-  }
-
-  // diagnostic : désordres visibles
-  const showDef = T.defects;
+  // diagnostic : désordres visibles, réparation en seconde moitié de chaque étape
+  const showDef = T.defects, hs = T.hs, after = T.after;
   looseTile.visible = showDef && !(after && hs === 'tuile');
   defect.visible = showDef && !(after && hs === 'solin'); repairSkirt.visible = showDef && after && hs === 'solin';
   const pulse = 0.5 + 0.5 * Math.sin(time * 4);
@@ -593,23 +557,26 @@ function tick() {
   if (showDef && hs) {
     const cfg = HS[hs]; hsRing.visible = true; hsRing.position.copy(cfg.anchor); hsRing.rotation.set(cfg.front ? A - Math.PI / 2 : Math.PI / 2 - A, 0, 0);
     M.ring.opacity = after ? 0.25 : 0.45 + pulse * 0.45; hsRing.scale.setScalar(1 + pulse * 0.1);
-    if (!hsManual && !reduced) { hsTimer += dt; if (hsTimer > 6) setHS(HS_ORDER[(HS_ORDER.indexOf(hs) + 1) % HS_ORDER.length], false); }
   } else hsRing.visible = false;
+  stage.classList.toggle('is-after', !!(showDef && after));
 
   // étiquettes
-  const lblOp = (mode === 'coupe' && atelier) ? smooth((st.explode - 0.45) / 0.3) : 0;
+  const lblOp = T.kind === 'coupe' ? smooth((st.explode - 0.45) / 0.3) : 0;
   for (const { el, cfg } of labelEls) {
     _p.set(cfg.x, cfg.v + st.explode * cfg.lift * sinA, st.explode * cfg.lift * cosA);
     slopes[0].g.localToWorld(_p);
-    el.classList.toggle('is-active', focusLayer === el.dataset.layer);
-    placeLabel(el, _p, lblOp * (focusLayer && focusLayer !== el.dataset.layer ? 0.35 : 1));
+    placeLabel(el, _p, lblOp);
   }
   const nF = _v.set(0, cosA, sinA), nB = _s.set(0, cosA, -sinA);
   for (const { el, cfg } of hsEls) {
-    const n = cfg.front ? nF : nB;
-    const facing = _p.copy(camera.position).sub(cfg.anchor).dot(n) > 0.3;
+    const facing = _p.copy(camera.position).sub(cfg.anchor).dot(cfg.front ? nF : nB) > 0.3;
+    el.classList.toggle('is-active', el.dataset.hs === hs);
     placeLabel(el, cfg.anchor, (showDef && facing) ? 1 : 0, 0.6);
   }
+
+  // textes des chapitres (grand écran)
+  if (!mobile) steps.forEach((c, i) => { c.firstElementChild.style.opacity = chapterWeight(i, T.cp === undefined ? st.cp : st.cp).toFixed(2); });
+  else steps.forEach((c) => { c.firstElementChild.style.opacity = ''; });
 
   renderer.render(scene, camera);
   if (firstFrame) { firstFrame = false; setTimeout(() => $('#loader').classList.add('is-hidden'), 200); }
@@ -617,29 +584,22 @@ function tick() {
 }
 
 // ------------------------------------------------------------------ démarrage
-window.__dbg = { st, camera, KEYS, HS, setMat, setMode, setHS, scene, get mode() { return mode; } };
+window.__dbg = { st, camera, KEYS, HS, setMat, scrollToStep, scene, steps };
 setMat('tuile');
-setMode('matieres');
-$$('[data-mat-info]').forEach((d) => { d.hidden = d.dataset.matInfo !== 'tuile'; });
-$$('[data-layer-info]').forEach((d) => { d.hidden = d.dataset.layerInfo !== 'none'; });
 resize();
 applyBuild(0, 0, null);
 tick();
 
-// Paramètres d'URL pour les captures : ?p=0.6&mode=coupe&explode=80&hs=mousse&after=1&clean=60&mat=ardoise
+// Paramètres d'URL pour les captures : ?step=3&f=0.7&mat=ardoise&instant
 const qs = new URLSearchParams(location.search);
-if (qs.has('p') || qs.has('mode')) {
+if (qs.has('step')) {
   addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(() => {
     document.documentElement.style.scrollBehavior = 'auto';
-    const r = exp.getBoundingClientRect(); const range = r.height - stageH;
-    scrollTo(0, scrollY + r.top + range * clamp(+(qs.get('p') || 0.6)));
-    if (qs.get('mode')) setMode(qs.get('mode'));
-    if (qs.get('mat')) setMat(qs.get('mat'));
-    if (qs.has('explode')) { explodeUI = +qs.get('explode') / 100; if (explodeEl) explodeEl.value = qs.get('explode'); }
-    if (qs.get('hs')) setHS(qs.get('hs'), true);
-    if (qs.has('after')) { after = true; if (afterBtn) { afterBtn.classList.add('is-active'); afterBtn.textContent = afterBtn.dataset.after; } }
-    if (qs.has('clean')) { cleanUI = +qs.get('clean') / 100; if (cleanEl) cleanEl.value = qs.get('clean'); if (cleanVal) cleanVal.textContent = qs.get('clean') + ' %'; }
-    if (qs.has('instant')) { st.build = 1; buildAnim = false; const T = targets(); st.explode = T.explode; st.moss = T.moss; st.fade = T.fade; st.az = T.key.az; st.el = T.key.el; st.dist = T.key.dist; st.tgt.fromArray(T.key.tgt); }
+    const i = clamp(+qs.get('step') || 0, 0, NST - 1), f = clamp(+(qs.get('f') || 0.5));
+    const r = steps[i].getBoundingClientRect();
+    scrollBy(0, r.top - innerHeight * 0.5 + f * r.height + 1);
+    if (qs.get('mat')) setMat(qs.get('mat'), true);
+    if (qs.has('instant')) { st.build = 1; buildAnim = false; readScroll(); const T = targets(); st.explode = T.explode; st.moss = T.moss; st.fade = T.fade; st.az = T.az; st.el = T.el; st.dist = T.dist; st.tgt.copy(T.tgt); st.sy = isMobile() ? (T.kind === 'hero' ? 0.3 : 0.22) : 0; }
     dirty = true;
   })));
 }
