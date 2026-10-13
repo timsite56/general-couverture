@@ -1,20 +1,21 @@
-# Général Couverture — site 3D (démo)
+# Général Couverture — site 3D multipage
 
-Site vitrine « immersif » pour Isaac (Général Couverture, couvreur à Angers), inspiré des sites 3D de l'agence Bellabox.
+Site de Général Couverture (Isaac, couvreur à Angers), en ligne sur https://generalcouverture.com. Refonte du 13/10/2026.
 
-- `index.html` : page complète (expérience 3D au scroll + sections services, à propos, réalisations, avis, zone, FAQ, contact).
-- `css/style.css` : thème sombre, panneaux par chapitre, version mobile.
-- `js/app.js` : scène Three.js générée en code (maison, charpente, tuiles, cheminée, pluie), chronologie pilotée par le scroll, boutons matières / lumière / fuite.
-- `images/` : visuels repris du site CMS d'Isaac (repo `timsite56/general-couverture`).
+## Structure
 
-Aucune dépendance à installer : Three.js est chargé depuis le CDN jsdelivr (version 0.170.0 épinglée), les polices depuis Google Fonts. Un simple hébergement statique suffit (Cloudflare Pages comme les autres sites).
+- `build.py` : **générateur**. Tout le contenu (coordonnées, 6 services, 16 communes, avis, FAQ, galerie) est dans ce fichier. `python3 build.py` réécrit toutes les pages HTML, `sitemap.xml` et `robots.txt`.
+- `index.html` : accueil, avec l'expérience 3D au scroll (scène Three.js épinglée, textes à côté sur grand écran et sous la scène sur mobile) puis services, méthode, à propos, réalisations, avis, zone, FAQ, contact.
+- `renovation-reparation-toiture.html`, `pose-toiture-neuve.html`, `entretien-demoussage.html`, `zinguerie.html`, `pose-velux.html`, `peinture-toiture.html` : une page par service (les services de Passion Couverture sans la peinture et le ravalement).
+- `zones-intervention.html`, `contact.html`, `mentions-legales.html`, `404.html`.
+- `css/site.css` : thème (ivoire + terre cuite, Manrope), mobile-first.
+- `js/app.js` : scène 3D générée en code (maison, charpente, tuiles, cheminée, fuite, pluie), chronologie pilotée par le scroll. `js/site.js` : menu mobile, formulaire (Web3Forms).
+- `images/` : photos de service (banque Passion Couverture, tuile), vraies photos de chantier d'Isaac (`photo-*.webp`), avant/après (`gallery*.jpg`).
 
-Pour tester en local, servir le dossier avec n'importe quel serveur statique, par exemple :
+## Modifier le site
 
-```bash
-python3 -m http.server 8793
-```
+1. Éditer `build.py` (textes, services, communes…), puis lancer `python3 build.py`.
+2. Pour le style : `css/site.css`. Pour la 3D : `js/app.js` (dimensions de la maison en tête de fichier).
+3. Recopier le dossier dans un clone du dépôt `timsite56/general-couverture` et pousser sur `main` : le Worker Cloudflare se redéploie seul en une minute.
 
-Les 7 chapitres de l'expérience, dans l'ordre : hero → la charpente se construit → les tuiles prennent place → le toit s'ouvre couche par couche → une fuite (symptôme / cause / réparation) → explorer (tuile terre cuite, tuile vieillie, ardoise ; jour / coucher de soleil / nuit) → appel à l'action.
-
-Pour adapter à un autre couvreur : textes dans `index.html`, teintes dans `colorInstances()` et dimensions de la maison (`W`, `D`, `Hw`, `A`) en tête de `js/app.js`.
+Paramètres d'URL utiles pour les captures de contrôle : `?step=3&f=0.6` (chapitre 3D), `?to=%23services` (défiler jusqu'à une section), `?no3d=1` (masquer l'expérience 3D).
