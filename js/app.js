@@ -56,7 +56,7 @@ try {
 } catch (e) { /* sans environnement, les lumières directes suffisent */ }
 
 // ------------------------------------------------------------------ lights
-const hemi = new THREE.HemisphereLight(0xbcd0e6, 0x5a4a3a, 0.7);
+const hemi = new THREE.HemisphereLight(0xdfe6ee, 0x8a847c, 0.75);
 const amb = new THREE.AmbientLight(0xffffff, 0.25);
 const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
 sun.position.set(8, 14, 7);
@@ -80,7 +80,7 @@ let lightMode = 'jour';
 // ------------------------------------------------------------------ materials
 const std = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, ...extra });
 const M = {
-  wall: std(0xe9e0cf, { roughness: 1 }),
+  wall: std(0xf2ece1, { roughness: 1 }),
   base: std(0xb3a48d, { roughness: 1 }),
   timber: std(0xb6803f, { roughness: 0.85 }),
   rafter: std(0xc48e55, { roughness: 0.85 }),
@@ -97,8 +97,8 @@ const M = {
   frame: std(0xf5f2ea, { roughness: 0.7 }),
   shutter: std(0x5c6f69, { roughness: 0.8 }),
   door: std(0x3a2a21, { roughness: 0.7 }),
-  plinth: std(0x161b19, { roughness: 0.95 }),
-  path: std(0x8c8577, { roughness: 1 }),
+  plinth: std(0xb9b4ae, { roughness: 0.95 }),
+  path: std(0xa39d95, { roughness: 1 }),
   lawn: std(0x3a5a37, { roughness: 1 }),
   hedge: std(0x2f5631, { roughness: 1 }),
   trunk: std(0x5a4030),
@@ -385,6 +385,7 @@ $$('[data-mat]').forEach((b) => b.addEventListener('click', () => setMat(b.datas
 function setLight(mode) {
   lightMode = mode;
   $$('[data-light]').forEach((b) => b.classList.toggle('is-active', b.dataset.light === mode));
+  stage.dataset.light = mode;
 }
 $$('[data-light]').forEach((b) => b.addEventListener('click', () => setLight(b.dataset.light)));
 
